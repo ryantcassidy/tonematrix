@@ -298,3 +298,31 @@ void mousePressed() {
   ctrl.clickCheck(mouseX, mouseY);
 }
 
+void generateSine(int len) {
+  sine = new double[len];
+
+  if (len % 2 == 0) {
+    double value;
+    sine[0] = 0;
+    int turnaround = len/2;
+    double increment = 1.0 / turnaround;
+    for (int counter = 0; counter < len; counter++) {
+      if (counter > turnaround) {
+        sine[counter] = 1 - (increment * (counter - turnaround));
+      } 
+      else {
+        sine[counter] = increment * counter;
+      }
+    }
+  } 
+  else {
+    int eachSide = (len - 1) / 2;
+    double increment = 2.0 / len;
+    sine[eachSide] = 1;
+    for (int counter = 1; counter <= eachSide; counter++) {
+      int offset = eachSide - counter;
+      sine[eachSide - counter] = 1 - (counter * increment);
+      sine[eachSide + counter] = 1 - (counter * increment);
+    }
+  }
+}

@@ -6,36 +6,60 @@ int TILE_WIDTH = 50;
 int window = (BOARD_SIZE * (TILE_WIDTH + 4)) + 250;
 SoundCipher sc = new SoundCipher(this);
 
+
 class Spinner {
 
   int sWidth;
   int spinX;
   int spinY;
-  float rotation;
+  float speed;
   boolean rowp;
-  Modifier mod;
+  //Enum mod;
   int gridIndex;
-  
-  Spinner(int sw, int sx, int sy, boolean rowp, int gi){
+
+  Spinner(int sx, int sy, int sw, boolean rowp, int gi) {
     sWidth = sw;
     spinX = sx;
     spinY = sy;
-    rotation = 0;
+    speed = 0.0;
     rowp = rowp;
-    mod = new Modifier();
     gridIndex = gi;
   }
-  
-  void drawMe(){
+
+  void drawMe() {
     rectMode(CENTER);
-    rect(spinX,spinY,sw,sw);
-    if(rowp){ 
-      for(Tile t : board[gridIndex]){
-         t.mod(...);
-      }
+    fill(255/(gridIndex+1));
+    rect(spinX, spinY, sWidth, sWidth);
+    
+    int half = sWidth/4;
+    if(rowp){
+      rect(spinX - sWidth, spinY - half, sWidth/2, sWidth/2);
+      rect(spinX - sWidth, spinY + half, sWidth/2, sWidth/2);
+    } else {
+      rect(spinX - half, spinY - sWidth, sWidth/2, sWidth/2);
+      rect(spinX + half, spinY - sWidth, sWidth/2, sWidth/2);
     }
   }
   
+  void clickCheck(int mx, int my) {
+    if(rowp){
+//      xMin = spinX - (sWidth
+    }
+  }
+
+  void update() {
+
+    if (rowp) { 
+      for (TTile t : board[gridIndex]) {
+        //t.mod(mod);
+      }
+    } 
+    else {
+      for (TTile[] t : board) {
+        //t[gridIndex].mod(mod);
+      }
+    }
+  }
 }
 
 class WaveControl {
@@ -44,49 +68,48 @@ class WaveControl {
   int rectY;
   int ctrlX;
   int ctrlY;
-  
-  WaveControl(int rx,int ry,int cx,int cy,int cw){
+
+  WaveControl(int rx, int ry, int cx, int cy, int cw) {
     rectX = rx;
     rectY = ry;
     ctrlX = cx;
     ctrlY = cy;
     cWidth = cw;
   } 
- 
- void drawMe(){
-   fill(135);
-   stroke(200);
-   rectMode(CENTER);
-   strokeWeight(7);
-   rect(rectX,rectY,cWidth,cWidth,6);
-   strokeWeight(1);
-   int half = cWidth/2;
-   line((rectX - half), rectY, (rectX + half), rectY);
-   line(rectX, (rectY - half), rectX, (rectY + half));
-   
-   fill(255,5,5);
-   ellipse(ctrlX,ctrlY,10,10);
- } 
- 
- void clickCheck(int mx, int my){
-   int half = cWidth/2;
-   if(mx >= (rectX - half) && mx <= (rectX + half) &&
-      my >= (rectY - half) && my <= (rectY + half)){
-     ctrlX = mx;
-     ctrlY = my;      
-   }
- }
- 
- public int getX(){
-   int half = cWidth/2;
-   return 20 * (ctrlX)/(rectX + half);
- }
- 
- public int getY(){
-   int half = cWidth/2;
-   return 20 * (ctrlY)/(rectY + half);
- }
- 
+
+  void drawMe() {
+    fill(135);
+    stroke(200);
+    rectMode(CENTER);
+    strokeWeight(7);
+    rect(rectX, rectY, cWidth, cWidth, 6);
+    strokeWeight(1);
+    int half = cWidth/2;
+    line((rectX - half), rectY, (rectX + half), rectY);
+    line(rectX, (rectY - half), rectX, (rectY + half));
+
+    fill(255, 5, 5);
+    ellipse(ctrlX, ctrlY, 10, 10);
+  } 
+
+  void clickCheck(int mx, int my) {
+    int half = cWidth/2;
+    if (mx >= (rectX - half) && mx <= (rectX + half) &&
+      my >= (rectY - half) && my <= (rectY + half)) {
+      ctrlX = mx;
+      ctrlY = my;
+    }
+  }
+
+  public int getX() {
+    int half = cWidth/2;
+    return 20 * (ctrlX)/(rectX + half);
+  }
+
+  public int getY() {
+    int half = cWidth/2;
+    return 20 * (ctrlY)/(rectY + half);
+  }
 }
 
 class TTile {
@@ -97,47 +120,50 @@ class TTile {
   int gridY;
   //TONE
   boolean active = false;
-  
+
   public float x_playhead_on = 0.0;
   public float y_playhead_on = 0.0;
-  
+
   boolean isPlaying;
 
   void drawMe() {
     float combo = (x_playhead_on + y_playhead_on)*5;
     float threshold = (x_playhead_on + y_playhead_on)/2;
-    
-    
-    if(active && threshold < .1){
-      if(!isPlaying){
-       playMe(); 
+
+
+    if (active && threshold < .1) {
+      if (!isPlaying) {
+        playMe();
       }
       isPlaying = true;
-    } else {
+    } 
+    else {
       isPlaying = false;
     }
-       
+
     if (!active) {
       stroke(0);
-    } else {
+    } 
+    else {
       stroke(255);
     }
-    
+
     fill(gridX*10, gridY*10, 255/combo);
-    
+
     //stroke(combo);
     strokeWeight(3);
 
     rectMode(CENTER);
-    if (active){
+    if (active) {
       float t = 1-threshold;
-      rect(tileX, tileY, tWidth*t, tWidth*t, 6); 
-    } else {
+      rect(tileX, tileY, tWidth*t, tWidth*t, 6);
+    } 
+    else {
       rect(tileX, tileY, tWidth, tWidth, 6);
     }
   }
 
-  void playMe(){
+  void playMe() {
     sc.playNote(60+(sc.TURKISH[(gridY % 7)]), 100, 1);
   }
 
@@ -161,7 +187,8 @@ class TTile {
 }
 
 TTile[][] board;
-WaveControl ctrl = new WaveControl(125,125,125,125,200);
+Spinner[][] spinners;
+WaveControl ctrl = new WaveControl(125, 125, 125, 125, 200);
 int x_playhead=0;
 int y_playhead=0;
 int board_size;
@@ -187,7 +214,26 @@ void advanceYPlayhead() {
     }
   }
 }
-
+void generateSpinners(int bsize){
+  spinners = new Spinner[2][bsize];
+  for(int a = 0; a < 2; a++){
+    boolean rowp = a % 2 == 0 ? true : false;
+    for(int b = 0; b < bsize; b++){
+      if(rowp){
+        spinners[a][b] = new Spinner(200, 250 + (54 * b), 50, rowp, b);
+      } else {
+        spinners[a][b] = new Spinner(250 + (54 * b), 200, 50, rowp, b);
+      } 
+    }
+  }
+  print("\n");
+  for(int a = 0; a < 2; a++) {
+    for(int b = 0; b < board_size; b++){
+      spinners[a][b].rowp = a == 0 ? true : false;
+      print(spinners[a][b].rowp);
+    }
+  }
+}
 void generateBoard(int bsize) {
   board_size = bsize;
   board = new TTile[bsize][bsize];
@@ -202,6 +248,7 @@ void generateBoard(int bsize) {
 void setup() {
   size(window, window);
   generateBoard(BOARD_SIZE);
+  generateSpinners(BOARD_SIZE);
   frameRate(FRAME_RATE);
   background(0);
   sc.instrument= sc.CLARINET;
@@ -210,22 +257,17 @@ void setup() {
 void draw() {
   fill(0);
   rectMode(CORNER);
-  rect(0,0,window,window);
-  //boolean play = false;
-  //if (tick_counter == FRAME_RATE){
-  //  play = true;
-  //} else {
-  //  tick_counter++;
-  //}
-  
+  rect(0, 0, window, window);
+
   ctrl.drawMe();
-  
+  for(int a = 0; a < 2; a++) {
+    for(int b = 0; b < board_size; b++){
+      spinners[a][b].drawMe();
+    }
+  }
   for (TTile[] row : board) {
     for (TTile t : row) {
       t.drawMe();
-    //  if(play){
-    //    t.playMe();
-    //  }
     }
   }
   int ctrlX = ctrl.getX();
@@ -244,16 +286,15 @@ void draw() {
   else {
     y_tick_counter++;
   }
-  
 }
 
 void mousePressed() {
-   for (TTile[] row : board) {
+  for (TTile[] row : board) {
     for (TTile t : row) {
       t.clickCheck(mouseX, mouseY);
     }
   }
-  
+
   ctrl.clickCheck(mouseX, mouseY);
-  
 }
+

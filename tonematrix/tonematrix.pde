@@ -1,12 +1,98 @@
 import arb.soundcipher.*;
+import java.awt.Point;
 int FRAME_RATE = 120;
+int BOARD_SIZE = 8;
+int TILE_WIDTH = 50;
+int window = (BOARD_SIZE * (TILE_WIDTH + 4)) + 250;
 SoundCipher sc = new SoundCipher(this);
 
+class Spinner {
+
+  int sWidth;
+  int spinX;
+  int spinY;
+  float rotation;
+  boolean rowp;
+  Modifier mod;
+  int gridIndex;
+  
+  Spinner(int sw, int sx, int sy, boolean rowp, int gi){
+    sWidth = sw;
+    spinX = sx;
+    spinY = sy;
+    rotation = 0;
+    rowp = rowp;
+    mod = new Modifier();
+    gridIndex = gi;
+  }
+  
+  void drawMe(){
+    rectMode(CENTER);
+    rect(spinX,spinY,sw,sw);
+    if(rowp){ 
+      for(Tile t : board[gridIndex]){
+         t.mod(...);
+      }
+    }
+  }
+  
+}
+
+class WaveControl {
+  int cWidth;
+  int rectX;
+  int rectY;
+  int ctrlX;
+  int ctrlY;
+  
+  WaveControl(int rx,int ry,int cx,int cy,int cw){
+    rectX = rx;
+    rectY = ry;
+    ctrlX = cx;
+    ctrlY = cy;
+    cWidth = cw;
+  } 
+ 
+ void drawMe(){
+   fill(135);
+   stroke(200);
+   rectMode(CENTER);
+   strokeWeight(7);
+   rect(rectX,rectY,cWidth,cWidth,6);
+   strokeWeight(1);
+   int half = cWidth/2;
+   line((rectX - half), rectY, (rectX + half), rectY);
+   line(rectX, (rectY - half), rectX, (rectY + half));
+   
+   fill(255,5,5);
+   ellipse(ctrlX,ctrlY,10,10);
+ } 
+ 
+ void clickCheck(int mx, int my){
+   int half = cWidth/2;
+   if(mx >= (rectX - half) && mx <= (rectX + half) &&
+      my >= (rectY - half) && my <= (rectY + half)){
+     ctrlX = mx;
+     ctrlY = my;      
+   }
+ }
+ 
+ public int getX(){
+   int half = cWidth/2;
+   return 20 * (ctrlX)/(rectX + half);
+ }
+ 
+ public int getY(){
+   int half = cWidth/2;
+   return 20 * (ctrlY)/(rectY + half);
+ }
+ 
+}
 
 class TTile {
   int tWidth;
-  int topLeftX;
-  int topLeftY;
+  int tileX;
+  int tileY;
   int gridX;
   int gridY;
   //TONE
@@ -19,9 +105,10 @@ class TTile {
 
   void drawMe() {
     float combo = (x_playhead_on + y_playhead_on)*5;
+    float threshold = (x_playhead_on + y_playhead_on)/2;
     
     
-    if(active && (x_playhead_on + y_playhead_on)/2 < .1){
+    if(active && threshold < .1){
       if(!isPlaying){
        playMe(); 
       }
@@ -36,38 +123,45 @@ class TTile {
       stroke(255);
     }
     
-    fill(gridX*10, gridY*10, 225/combo);
+    fill(gridX*10, gridY*10, 255/combo);
     
     //stroke(combo);
     strokeWeight(3);
 
-    
-    rect(topLeftX, topLeftY, tWidth, tWidth, 6);
+    rectMode(CENTER);
+    if (active){
+      float t = 1-threshold;
+      rect(tileX, tileY, tWidth*t, tWidth*t, 6); 
+    } else {
+      rect(tileX, tileY, tWidth, tWidth, 6);
+    }
   }
 
   void playMe(){
-    sc.playNote(60+(sc.BLUES[(gridY % 6)]), 100, 1);
+    sc.playNote(60+(sc.TURKISH[(gridY % 7)]), 100, 1);
   }
 
   void clickCheck(int mX, int mY) {
-    if (topLeftX < mX &&
-      mX < (topLeftX + tWidth) &&
-      topLeftY < mY &&
-      mY < (topLeftY + tWidth)) {
+    int half = tWidth/2;
+    if ((tileX - half) < mX &&
+      mX < (tileX + half) &&
+      (tileY - half) < mY &&
+      mY < (tileY + half)) {
       this.active = !this.active;
     }
   }
 
   TTile(int tlx, int tly, int w, int x, int y) {
     tWidth = w;
-    topLeftX = tlx;
-    topLeftY = tly;
+    tileX = tlx;
+    tileY = tly;
     gridX = x;
     gridY = y;
   }
 }
 
 TTile[][] board;
+WaveControl ctrl = new WaveControl(125,125,125,125,200);
 int x_playhead=0;
 int y_playhead=0;
 int board_size;
@@ -99,27 +193,33 @@ void generateBoard(int bsize) {
   board = new TTile[bsize][bsize];
   for (int a = 0; a < bsize; a++) {
     for (int b = 0; b < bsize; b++) {
-      board[a][b] = new TTile(50 + (54 * a), 50 + (54 * b), 50, a, b);
+      board[a][b] = new TTile(250 + (54 * a), 250 + (54 * b), 50, a, b);
     }
   }
 }
 
 
 void setup() {
-  size(500, 500);
-  generateBoard(8);
+  size(window, window);
+  generateBoard(BOARD_SIZE);
   frameRate(FRAME_RATE);
   background(0);
   sc.instrument= sc.CLARINET;
 }
 
 void draw() {
+  fill(0);
+  rectMode(CORNER);
+  rect(0,0,window,window);
   //boolean play = false;
   //if (tick_counter == FRAME_RATE){
   //  play = true;
   //} else {
   //  tick_counter++;
   //}
+  
+  ctrl.drawMe();
+  
   for (TTile[] row : board) {
     for (TTile t : row) {
       t.drawMe();
@@ -128,16 +228,18 @@ void draw() {
     //  }
     }
   }
+  int ctrlX = ctrl.getX();
+  int ctrlY = ctrl.getY();
   if (x_tick_counter == 20) {
     advanceXPlayhead();
-    x_tick_counter = 0;
+    x_tick_counter = ctrlX;
   } 
   else {
     x_tick_counter++;
   }
   if (y_tick_counter == 20) {
     advanceYPlayhead();
-    y_tick_counter = 0;
+    y_tick_counter = ctrlY;
   } 
   else {
     y_tick_counter++;
@@ -146,9 +248,12 @@ void draw() {
 }
 
 void mousePressed() {
-  for (TTile[] row : board) {
+   for (TTile[] row : board) {
     for (TTile t : row) {
       t.clickCheck(mouseX, mouseY);
     }
   }
+  
+  ctrl.clickCheck(mouseX, mouseY);
+  
 }

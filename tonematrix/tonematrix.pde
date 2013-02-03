@@ -12,7 +12,7 @@ class Spinner {
   int sWidth;
   int spinX;
   int spinY;
-  float speed;
+  float rotation;
   boolean rowp;
   //Enum mod;
   int gridIndex;
@@ -21,29 +21,70 @@ class Spinner {
     sWidth = sw;
     spinX = sx;
     spinY = sy;
-    speed = 0.0;
+    rotation = 0.0;
     rowp = rowp;
     gridIndex = gi;
   }
 
   void drawMe() {
     rectMode(CENTER);
-    fill(255/(gridIndex+1));
+    fill(255);
     rect(spinX, spinY, sWidth, sWidth);
-    
+    fill(0);
+    textAlign(CENTER);
+    text(rotation, spinX, spinY);
+
     int half = sWidth/4;
-    if(rowp){
+    if (rowp) {
+      fill(255);
       rect(spinX - sWidth, spinY - half, sWidth/2, sWidth/2);
+      fill(0);
+      text("+", spinX - sWidth, spinY - half);
+      fill(255);
       rect(spinX - sWidth, spinY + half, sWidth/2, sWidth/2);
-    } else {
+      fill(0);
+      text("-", spinX - sWidth, spinY + half);
+    } 
+    else {
+      fill(255);
       rect(spinX - half, spinY - sWidth, sWidth/2, sWidth/2);
+      fill(0);
+      text("-", spinX - half, spinY - sWidth);
+      fill(255);
       rect(spinX + half, spinY - sWidth, sWidth/2, sWidth/2);
+      fill(0);
+      text("+", spinX + half, spinY - sWidth);
     }
   }
-  
+
   void clickCheck(int mx, int my) {
-    if(rowp){
-//      xMin = spinX - (sWidth
+    if (rowp) {
+      int xMin = spinX - (sWidth + sWidth/4);
+      int xMax = spinX - (sWidth - sWidth/4);
+      int yMin = spinY - (sWidth/2);
+      int yMax = spinY + (sWidth/2);
+      if (mx < xMax && mx > xMin && my < yMax) {
+        if ( my > spinY) {
+          rotation++;
+        } 
+        else {
+          rotation--;
+        }
+      }
+    } 
+    else {
+      int yMin = spinY - (sWidth + sWidth/4);
+      int yMax = spinY - (sWidth - sWidth/4);
+      int xMin = spinX - (sWidth/2);
+      int xMax = spinX + (sWidth/2);
+      if (my < yMax && my > yMin && mx < xMax) {
+        if ( mx > spinX) {
+          rotation++;
+        } 
+        else {
+          rotation--;
+        }
+      }
     }
   }
 
@@ -214,21 +255,22 @@ void advanceYPlayhead() {
     }
   }
 }
-void generateSpinners(int bsize){
+void generateSpinners(int bsize) {
   spinners = new Spinner[2][bsize];
-  for(int a = 0; a < 2; a++){
+  for (int a = 0; a < 2; a++) {
     boolean rowp = a % 2 == 0 ? true : false;
-    for(int b = 0; b < bsize; b++){
-      if(rowp){
+    for (int b = 0; b < bsize; b++) {
+      if (rowp) {
         spinners[a][b] = new Spinner(200, 250 + (54 * b), 50, rowp, b);
-      } else {
-        spinners[a][b] = new Spinner(250 + (54 * b), 200, 50, rowp, b);
       } 
+      else {
+        spinners[a][b] = new Spinner(250 + (54 * b), 200, 50, rowp, b);
+      }
     }
   }
   print("\n");
-  for(int a = 0; a < 2; a++) {
-    for(int b = 0; b < board_size; b++){
+  for (int a = 0; a < 2; a++) {
+    for (int b = 0; b < board_size; b++) {
       spinners[a][b].rowp = a == 0 ? true : false;
       print(spinners[a][b].rowp);
     }
@@ -260,8 +302,8 @@ void draw() {
   rect(0, 0, window, window);
 
   ctrl.drawMe();
-  for(int a = 0; a < 2; a++) {
-    for(int b = 0; b < board_size; b++){
+  for (int a = 0; a < 2; a++) {
+    for (int b = 0; b < board_size; b++) {
       spinners[a][b].drawMe();
     }
   }
@@ -296,10 +338,15 @@ void mousePressed() {
   }
 
   ctrl.clickCheck(mouseX, mouseY);
+  for (Spinner[] sArray : spinners) {
+    for (Spinner s : sArray) {
+      s.clickCheck(mouseX, mouseY);
+    }
+  }
 }
 
 void generateSine(int len) {
-  sine = new double[len];
+  double[] sine = new double[len];
 
   if (len % 2 == 0) {
     double value;
@@ -326,3 +373,4 @@ void generateSine(int len) {
     }
   }
 }
+

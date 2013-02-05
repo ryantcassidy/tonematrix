@@ -8,10 +8,10 @@ import arb.soundcipher.*;
 import java.awt.Point;
 
 //// constants, sound libs
-int FRAME_RATE = 120;
-int BOARD_SIZE = 20;
-int TILE_WIDTH = 20;
-int BORDER = 0;
+int FRAME_RATE = 500;
+int BOARD_SIZE = 10;
+int TILE_WIDTH = 50;
+int BORDER = 5;
 int window = (BOARD_SIZE * (TILE_WIDTH + BORDER)) + 250;
 SoundCipher sc = new SoundCipher(this);
 
@@ -19,13 +19,13 @@ SoundCipher sc = new SoundCipher(this);
 float[] m_sine;
 
 // append two sine waves to make a big array with 2 peaks
-float[] generateDoublePeakSine(int len){
+float[] generateDoublePeakSine(int len) {
   float[] d_sine = new float[len];
   float[] one_sine = generateSine(len / 2);
-  
+
   System.arraycopy(one_sine, 0, d_sine, 0, len / 2);
   System.arraycopy(one_sine, 0, d_sine, len / 2, len / 2);
-  
+
   return d_sine;
 }
 
@@ -78,85 +78,25 @@ class WaveControl {
     ctrlY = cy;
     cWidth = cw;
   } 
-////Bezier Ellipse by Ira Greenberg
-//// http://processing.org/learning/basics/bezierellipse.html
 
-// arrays to hold ellipse coordinate data
-float[] px, py, cx, cy, cx2, cy2;
-
-// global variable-points in ellipse
-int pts = 4;
-
-color controlPtCol = #222222;
-color anchorPtCol = #BBBBBB;
-setEllipse(pts, 65, 65);
-
-
-// Draw ellipse with anchor/control points
-void drawEllipse(){
-  strokeWeight(1.125);
-  stroke(255);
-  noFill();
-  // Create ellipse
-  for (int i=0; i<pts; i++){
-    if (i==pts-1) {
-      bezier(px[i], py[i], cx[i], cy[i], cx2[i], cy2[i],  px[0], py[0]);
-    }
-    else{
-      bezier(px[i], py[i], cx[i], cy[i], cx2[i], cy2[i],  px[i+1], py[i+1]);
-    }
-  }
-  strokeWeight(.75);
-  stroke(0);
-  rectMode(CENTER);
-}
-
-// Fill arrays with ellipse coordinate data
-void setEllipse(int points, float radius, float controlRadius){
-  pts = points;
-  px = new float[points];
-  py = new float[points];
-  cx = new float[points];
-  cy = new float[points];
-  cx2 = new float[points];
-  cy2 = new float[points];
-  float angle = 360.0/points;
-  float controlAngle1 = angle/3.0;
-  float controlAngle2 = controlAngle1*2.0;
-  for ( int i=0; i<points; i++){
-    px[i] = ctrlX+cos(radians(angle))*radius;
-    py[i] = ctrlY+sin(radians(angle))*radius;
-    cx[i] = ctrlX+cos(radians(angle+controlAngle1))* 
-      controlRadius/cos(radians(controlAngle1));
-    cy[i] = ctrlY+sin(radians(angle+controlAngle1))* 
-      controlRadius/cos(radians(controlAngle1));
-    cx2[i] = ctrlX+cos(radians(angle+controlAngle2))* 
-      controlRadius/cos(radians(controlAngle1));
-    cy2[i] = ctrlY+sin(radians(angle+controlAngle2))* 
-      controlRadius/cos(radians(controlAngle1));
-
-    // Increment angle so trig functions keep chugging along
-    angle+=360.0/points;
-  }
-}
   //Draw wave controller
   void drawMe() {
     fill(135);
     stroke(200);
     rectMode(CENTER);
     strokeWeight(7);
-    rect(rectX, rectY, cWidth, cWidth, 6);
+    rect(rectX, rectY, cWidth, cWidth, 16);
     strokeWeight(1);
     int half = cWidth/2;
-    line((rectX - half), rectY, (rectX + half), rectY);
-    line(rectX, (rectY - half), rectX, (rectY + half));
-
-    //fill(255, 5, 5);
-    //ellipse(ctrlX, ctrlY, 10, 10);
-    drawEllipse();
-    setEllipse(6, 10, 10);
+    noFill();
+    strokeWeight(7);
+    bezier((rectX - half), rectY, ctrlX, ctrlY, ctrlX, ctrlY, (rectX + half), rectY);
+    bezier(rectX, (rectY - half), ctrlX, ctrlY, ctrlX, ctrlY, rectX, (rectY + half));
+    fill(0);
+    strokeWeight(0);
+    rect(ctrlX, ctrlY, 7, 7);
   } 
-  
+
   void clickCheck(int mx, int my) {
     int half = cWidth/2;
     if (mx >= (rectX - half) && mx <= (rectX + half) &&
@@ -172,12 +112,12 @@ void setEllipse(int points, float radius, float controlRadius){
   // the controller is to its max x and y value.
   public int getX() {
     int half = cWidth/2;
-    return floor((ctrlX)/(rectX + half));
+    return x_ticks_max * (ctrlX)/(rectX + half);
   }
 
   public int getY() {
     int half = cWidth/2;
-    return floor((ctrlY)/(rectY + half));
+    return y_ticks_max * (ctrlY)/(rectY + half);
   }
 }
 
@@ -193,56 +133,63 @@ class TTile {
   boolean active = false;
   int x_sin = 0;
   int y_sin = 0;
-  
+
   boolean isPlaying = false;
-  
-  
-  void incrementX(){
-    if(x_sin <= 0){
+
+
+  void incrementX() {
+    if (x_sin <= 0) {
       x_sin = BOARD_SIZE - 1;
-    } else {
+    } 
+    else {
       x_sin--;
     }
   }
-  
-  void incrementY(){
-    if(y_sin <= 0){
+
+  void incrementY() {
+    if (y_sin <= 0) {
       y_sin = BOARD_SIZE - 1;
-    } else {
+    } 
+    else {
       y_sin--;
     }
   }
-  
-  void checkSinAndPlayOnce(){
+
+  void checkSinAndPlayOnce() {
     double wave_val = (m_sine[x_sin] + m_sine[y_sin]);
-    if (active && wave_val > 1) {
-      if (!isPlaying) { playMe(); }
+    if (active && wave_val > 1.8) {
+      if (!isPlaying) { 
+        playMe();
+      }
       isPlaying = true;
-    } else {
+    } 
+    else {
       isPlaying = false;
     }
   }
-  
+
   void drawMe() {
     checkSinAndPlayOnce();
     float wave_avg = (m_sine[x_sin] + m_sine[y_sin])/2;
 
-    float combo = (m_sine[x_sin] + m_sine[y_sin])*5;
-    float something = (float)combo;
-    fill(gridX*10, gridY*10, 255/something);
+    float combo = (m_sine[x_sin] + m_sine[y_sin])*2;
+    fill(gridX*15, gridY*15, 255/combo);
     if (!active) {
       stroke(0);
-    } else {
-      stroke(gridX*15, gridY*15, 255/something);
+    } 
+    else {
+      stroke(255);
     }
 
     strokeWeight(BORDER);
 
     rectMode(CENTER);
-    if(active){
-      rect(tileX, tileY, tWidth*wave_avg, tWidth*wave_avg, 6);
-    } else {
-      rect(tileX, tileY, tWidth, tWidth, 6);
+    if (active) {
+      rect(tileX, tileY, tWidth*wave_avg, tWidth*wave_avg, BORDER);
+    } 
+    else {
+      fill(100*wave_avg);
+      rect(tileX, tileY, tWidth, tWidth, BORDER);
     }
   }
 
@@ -251,7 +198,7 @@ class TTile {
   }
 
   void clickCheck(int mX, int mY) {
-    int half = tWidth/2;
+    int half = (tWidth+BORDER)/2;
     if ((tileX - half) < mX &&
       mX < (tileX + half) &&
       (tileY - half) < mY &&
@@ -277,39 +224,41 @@ class Toggle {
   final int w = 200;
   final int h = 24;
   boolean toggledOn;
-  
-  Toggle(int tx, int ty, boolean to){
+
+  Toggle(int tx, int ty, boolean to) {
     this.toggleX = tx;
     this.toggleY = ty;
     this.toggledOn = to;
   }
-  void drawMe(){
+  void drawMe() {
     rectMode(CENTER);
     textAlign(CENTER);
-    if(toggledOn){
+    strokeWeight(2);
+    if (toggledOn) {
       text("Toggle All Tiles", toggleX, toggleY);
-      fill(255);
+      noFill();
       rect(toggleX, toggleY, w, h, 4);
-    } else {
+    } 
+    else {
       text("Toggle All Tiles", toggleX, toggleY);
-      fill(0);
+      noFill();
       rect(toggleX, toggleY, w, h, 4);
     }
   }
-  
-  void clickCheck(int mx, int my){
+
+  void clickCheck(int mx, int my) {
     int halfH = h/2;
     int halfW = w/2; 
-    
-    if(mx < toggleX + halfW && mx > toggleX - halfW &&
-       my < toggleY + halfH && my > toggleY - halfH){
-         toggledOn = !toggledOn;
-         for(TTile[] row : board){
-            for(TTile t : row) {
-              t.active = toggledOn;
-            }
-          }
-       }
+
+    if (mx < toggleX + halfW && mx > toggleX - halfW &&
+      my < toggleY + halfH && my > toggleY - halfH) {
+      toggledOn = !toggledOn;
+      for (TTile[] row : board) {
+        for (TTile t : row) {
+          t.active = toggledOn;
+        }
+      }
+    }
   }
 }
 
@@ -342,46 +291,48 @@ void setup() {
   m_sine = generateDoublePeakSine(BOARD_SIZE);
   generateBoard(BOARD_SIZE);
   frameRate(FRAME_RATE);
-  background(0);
-  sc.instrument= sc.CLARINET;
+  background(145);
+  sc.instrument= sc.PIANO;
 }
 
 void draw() {
-  fill(0);
+  fill(145);
   rectMode(CORNER);
   rect(0, 0, window, window);
 
   ctrl.drawMe();
-  
+
   for (TTile[] row : board) {
     for (TTile t : row) {
       t.drawMe();
     }
   }
-  
+
   if (x_tick_counter == x_ticks_max) {
-    for(TTile[] row : board){
-      for(TTile t : row) {
+    for (TTile[] row : board) {
+      for (TTile t : row) {
         t.incrementX();
       }
     }
-    x_tick_counter = x_ticks_max * ctrl.getX();
-  } else {
+    x_tick_counter = ctrl.getX();
+  } 
+  else {
     x_tick_counter++;
   }
-  
+
   if (y_tick_counter == y_ticks_max) {
-    for(TTile[] row : board){
-      for(TTile t : row) {
+    for (TTile[] row : board) {
+      for (TTile t : row) {
         t.incrementY();
       }
     }
-    y_tick_counter = y_ticks_max * ctrl.getY();
-  } else {
+    y_tick_counter = ctrl.getY();
+  } 
+  else {
     y_tick_counter++;
   }
-  
-  toggleAll.drawMe();
+
+  //toggleAll.drawMe();
 }
 
 void mousePressed() {
@@ -391,11 +342,11 @@ void mousePressed() {
     }
   }
 
-  ctrl.clickCheck(mouseX, mouseY);
   toggleAll.clickCheck(mouseX, mouseY);
-  
+  ctrl.clickCheck(mouseX, mouseY);
 }
 
-
-
+void mouseDragged() {
+  ctrl.clickCheck(mouseX, mouseY);
+}
 

@@ -1,22 +1,75 @@
+//// TONE MATRIX
+//// 2d Project
+//// Colin Stanton & Ryan Cassidy
+//// Computer Graphics
+
+//// imports
 import arb.soundcipher.*;
 import java.awt.Point;
+
+//// constants, sound libs
 int FRAME_RATE = 120;
 int BOARD_SIZE = 8;
 int TILE_WIDTH = 50;
 int window = (BOARD_SIZE * (TILE_WIDTH + 4)) + 250;
 SoundCipher sc = new SoundCipher(this);
 
+double[] m_sine;
 
+// append two sine waves to make a big array with 2 peaks
+double[] generateDoublePeakSine(int len){
+  double[] d_sine = new double[len];
+  double[] one_sine = generateSine(len / 2);
+  
+  System.arraycopy(one_sine, 0, d_sine, 0, len / 2);
+  System.arraycopy(one_sine, 0, d_sine, len / 2, len / 2);
+  
+  return d_sine;
+}
+
+// make a sine wave in an array, one peak
+double[] generateSine(int len) {
+  m_sine = new double[len];
+
+  if (len % 2 == 0) {
+    double value;
+    m_sine[0] = 0;
+    int turnaround = len/2;
+    double increment = 1.0 / turnaround;
+    for (int counter = 0; counter < len; counter++) {
+      if (counter > turnaround) {
+        m_sine[counter] = 1 - (increment * (counter - turnaround));
+      } 
+      else {
+        m_sine[counter] = increment * counter;
+      }
+    }
+  } 
+  else {
+    int eachSide = (len - 1) / 2;
+    double increment = 2.0 / len;
+    m_sine[eachSide] = 1;
+    for (int counter = 1; counter <= eachSide; counter++) {
+      int offset = eachSide - counter;
+      m_sine[eachSide - counter] = 1 - (counter * increment);
+      m_sine[eachSide + counter] = 1 - (counter * increment);
+    }
+  }
+  return m_sine;
+}
+
+//// SPINNER CLASS
+//// The spinners sit along the X and Y axes of the tone matrix
+//// and provide a semblance of control for the mechanism
 class Spinner {
-
   int sWidth;
   int spinX;
   int spinY;
   float rotation;
   boolean rowp;
-  //Enum mod;
   int gridIndex;
 
+  // constructor
   Spinner(int sx, int sy, int sw, boolean rowp, int gi) {
     sWidth = sw;
     spinX = sx;
@@ -26,6 +79,7 @@ class Spinner {
     gridIndex = gi;
   }
 
+  // put me on the screen!
   void drawMe() {
     rectMode(CENTER);
     fill(255);
@@ -132,7 +186,7 @@ class WaveControl {
     fill(255, 5, 5);
     ellipse(ctrlX, ctrlY, 10, 10);
   } 
-
+  
   void clickCheck(int mx, int my) {
     int half = cWidth/2;
     if (mx >= (rectX - half) && mx <= (rectX + half) &&
@@ -153,55 +207,65 @@ class WaveControl {
   }
 }
 
+//// TONE TILE Class
+//// Represents a square in the main grid of the application
+//// Triggers a sound to play, toggleable
 class TTile {
   int tWidth;
   int tileX;
   int tileY;
   int gridX;
   int gridY;
-  //TONE
   boolean active = false;
-
-  public float x_playhead_on = 0.0;
-  public float y_playhead_on = 0.0;
-
-  boolean isPlaying;
-
-  void drawMe() {
-    float combo = (x_playhead_on + y_playhead_on)*5;
-    float threshold = (x_playhead_on + y_playhead_on)/2;
-
-
-    if (active && threshold < .1) {
-      if (!isPlaying) {
-        playMe();
-      }
+  int x_sin = 0;
+  int y_sin = 0;
+  
+  boolean isPlaying = false;
+  
+  void incrementX(){
+    if(x_sin == 0){
+      x_sin = BOARD_SIZE - 1;
+    } else {
+      x_sin--;
+    }
+   // this.x_sin = (x_sin + 1) % BOARD_SIZE;
+  }
+  
+  void incrementY(){
+    if(y_sin == 0){
+      y_sin = BOARD_SIZE - 1;
+    } else {
+      y_sin--;
+    }
+   // this.y_sin = (y_sin + 1) % BOARD_SIZE;
+  }
+  
+  void checkSinAndPlayOnce(){
+    double wave_val = (m_sine[x_sin] + m_sine[y_sin]);
+    if (active && wave_val > 1.8) {
+      if (!isPlaying) { playMe(); }
       isPlaying = true;
-    } 
-    else {
+    } else {
       isPlaying = false;
     }
+  }
+  
+  void drawMe() {
+    checkSinAndPlayOnce();
 
     if (!active) {
       stroke(0);
-    } 
-    else {
+    } else {
       stroke(255);
     }
 
-    fill(gridX*10, gridY*10, 255/combo);
-
-    //stroke(combo);
+    double combo = (m_sine[x_sin] + m_sine[y_sin])*5;
+    float something = (float)combo;
+    fill(gridX*10, gridY*10, 255/something);
     strokeWeight(3);
 
     rectMode(CENTER);
-    if (active) {
-      float t = 1-threshold;
-      rect(tileX, tileY, tWidth*t, tWidth*t, 6);
-    } 
-    else {
-      rect(tileX, tileY, tWidth, tWidth, 6);
-    }
+    rect(tileX, tileY, tWidth, tWidth, 6);
   }
 
   void playMe() {
@@ -224,6 +288,8 @@ class TTile {
     tileY = tly;
     gridX = x;
     gridY = y;
+    x_sin = x;
+    y_sin = y;
   }
 }
 
@@ -236,25 +302,9 @@ int board_size;
 int tick_counter;
 int x_tick_counter=0;
 int y_tick_counter=0;
+int x_ticks_max = 20;
+int y_ticks_max = 50;
 
-void advanceXPlayhead() {
-  x_playhead = (x_playhead + 1) % board_size;
-  for (int a = 0; a < board_size; a++) {
-    for (TTile t : board[a]) {
-      t.x_playhead_on = float(abs(a-x_playhead))/board_size;
-    }
-  }
-}
-
-
-void advanceYPlayhead() {
-  y_playhead = (y_playhead + 1) % board_size;
-  for (TTile[] row : board) {
-    for (int b = 0; b < board_size; b++) {
-      row[b].y_playhead_on = float(abs(b-y_playhead))/board_size;
-    }
-  }
-}
 void generateSpinners(int bsize) {
   spinners = new Spinner[2][bsize];
   for (int a = 0; a < 2; a++) {
@@ -276,6 +326,7 @@ void generateSpinners(int bsize) {
     }
   }
 }
+
 void generateBoard(int bsize) {
   board_size = bsize;
   board = new TTile[bsize][bsize];
@@ -289,6 +340,7 @@ void generateBoard(int bsize) {
 
 void setup() {
   size(window, window);
+  m_sine = generateDoublePeakSine(BOARD_SIZE);
   generateBoard(BOARD_SIZE);
   generateSpinners(BOARD_SIZE);
   frameRate(FRAME_RATE);
@@ -302,6 +354,7 @@ void draw() {
   rect(0, 0, window, window);
 
   ctrl.drawMe();
+  
   for (int a = 0; a < 2; a++) {
     for (int b = 0; b < board_size; b++) {
       spinners[a][b].drawMe();
@@ -312,20 +365,26 @@ void draw() {
       t.drawMe();
     }
   }
-  int ctrlX = ctrl.getX();
-  int ctrlY = ctrl.getY();
-  if (x_tick_counter == 20) {
-    advanceXPlayhead();
-    x_tick_counter = ctrlX;
-  } 
-  else {
+  
+  if (x_tick_counter == x_ticks_max) {
+    for(TTile[] row : board){
+      for(TTile t : row) {
+        t.incrementX();
+      }
+    }
+    x_tick_counter = 0;
+  } else {
     x_tick_counter++;
   }
-  if (y_tick_counter == 20) {
-    advanceYPlayhead();
-    y_tick_counter = ctrlY;
-  } 
-  else {
+  
+  if (y_tick_counter == y_ticks_max) {
+    for(TTile[] row : board){
+      for(TTile t : row) {
+        t.incrementY();
+      }
+    }
+    y_tick_counter = 0;
+  } else {
     y_tick_counter++;
   }
 }
@@ -338,6 +397,7 @@ void mousePressed() {
   }
 
   ctrl.clickCheck(mouseX, mouseY);
+  
   for (Spinner[] sArray : spinners) {
     for (Spinner s : sArray) {
       s.clickCheck(mouseX, mouseY);
@@ -345,32 +405,6 @@ void mousePressed() {
   }
 }
 
-void generateSine(int len) {
-  double[] sine = new double[len];
 
-  if (len % 2 == 0) {
-    double value;
-    sine[0] = 0;
-    int turnaround = len/2;
-    double increment = 1.0 / turnaround;
-    for (int counter = 0; counter < len; counter++) {
-      if (counter > turnaround) {
-        sine[counter] = 1 - (increment * (counter - turnaround));
-      } 
-      else {
-        sine[counter] = increment * counter;
-      }
-    }
-  } 
-  else {
-    int eachSide = (len - 1) / 2;
-    double increment = 2.0 / len;
-    sine[eachSide] = 1;
-    for (int counter = 1; counter <= eachSide; counter++) {
-      int offset = eachSide - counter;
-      sine[eachSide - counter] = 1 - (counter * increment);
-      sine[eachSide + counter] = 1 - (counter * increment);
-    }
-  }
-}
+
 

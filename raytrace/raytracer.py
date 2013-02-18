@@ -1,6 +1,8 @@
 import Image
 import sys
 import math
+import numpy
+import random
 
 args = sys.argv
 scene = args[1]
@@ -75,15 +77,15 @@ class Transmissive(Material):
 
 class Sphere:
 	position = None
-	radius = None
+	normal = None
 	ambientMaterial = None
 	diffuseMaterial = None
 	specularMaterial = None
 	transmissiveMaterial = None
 
-	def __init__(self,p,r,am,dm,sm,tm):
+	def __init__(self,p,n,am,dm,sm,tm):
 		self.position = p
-		self.radius = r
+		self.normal = n
 		self.ambientMaterial = am
 		self.diffuseMaterial = dm
 		self.specularMaterial = sm
@@ -102,10 +104,21 @@ class Camera:
 
 	position = None
 	normal = None
+	fustrum = None
 
-	def __init__(self,p,n):
+	def __init__(self,p,n,f=30):
 		self.position = p
 		self.normal = n
+		self.fustrum = f
+
+class Ray:
+
+	position = None
+	vector = None
+
+	def __init__(self,p,v):
+		self.position = p
+		self.vector = v
 
 class raytracer:
 	fileName = ""
@@ -155,7 +168,7 @@ class raytracer:
 				self.transmissiveMaterial = Transmissive([float(args[1]), float(args[2]), float(args[3]), float(args[4])])
 			#Sphere - i
 			elif(command == "ss"):
-				self.spheres.append( Sphere(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
+				self.spheres.append( Sphere(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
 			#Triangle - i j k
 			elif(command == "ts"):
 				pass        
@@ -164,19 +177,19 @@ class raytracer:
 				pass        
 			#Point Light - i r g b
 			elif(command == "pl"):
-				self.lights.append( Point(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Point(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Directional Light - i r g b
 			elif(command == "dl"):
-				self.lights.append( Directional(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Directional(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Spot Light - i r g b
 			elif(command == "sl"):
-				self.lights.append( Spot(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Spot(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Ambient Light - r g b
 			elif(command == "al"):
 				self.lights.append( lAmbient([float(args[1]), float(args[2]), float(args[3])]) )
 			#Camera - i
 			elif(command == "cc"):
-				self.camera = Camera(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal)      
+				self.camera = Camera(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal)      
 			#Image Resolution - w h
 			elif(command == "ir"):
 				self.imageResolution = [int(args[1]),int(args[2])]
@@ -193,29 +206,54 @@ class raytracer:
 			else:
 				pass
 
-	# def sub(self, v1, v2): 
-	# 	return [x-y for x,y in zip(v1, v2)]
+	def sub(self, v1, v2): 
+		return [x-y for x,y in zip(v1, v2)]
 
-	# def dot(self, v1, v2): 
-	# 	return sum([x*y for x,y in zip(v1, v2)])
+	def dot(self, v1, v2): 
+		return sum([x*y for x,y in zip(v1, v2)])
 
-	# def norm(self, v): 
-	# 	return [x/math.sqrt(self.dot(v,v)) for x in v]
+	def norm(self, v): 
+		return [x/math.sqrt(self.dot(v,v)) for x in v]
 
 	def doIt(self):
 		width = self.imageResolution[0]
 		height = self.imageResolution[1]
 		image = Image.new("RGB", (width,height))
 		pixels = image.load()
-		
+		camera = self.camera
 		# ray = ( (0,0,0), self.norm(((0-width/2.0)/width, (0-height/2.0)/width, 1)) )
 		# pixels[0,0] = self.trace_ray(ray, spheres)
 
 		for x in range(width):
 			for y in range(height):
-				#CANT USE THIS UNLESS YOU UNDERSTAND WHAT ITS DOING AND REWRITE IT
-				ray = ( (0,0,0), self.norm(((x-width/2.0)/width, (y-height/2.0)/width, 1)) )
-				pixels[x,y] = (255,0,0)#self.trace_ray(ray, self.spheres)
+				r = width/2
+				l = -1 * r
+				t = height/2
+				b = -1 * t
+
+				u = l + (r - l)*(x + .5)/width
+				v = b + (t - b)*(y + .5)/height
+
+				d = -1 * width/(2*math.tan(camera.fustrum/2))
+
+				look = []
+
+				for i in range(len(camera.normal)):
+					v = camera.normal[i]
+					look.append(v * d)
+
+				up = [0,u,0]
+
+				right = numpy.cross(look,up)
+
+				rayDirection = map(sum, zip(look,map(sum, zip(up,right))))
+
+				ray = Ray( camera.position, rayDirection )
+				
+				# print ray.position
+				print ray.vector
+
+				pixels[x,y] = (random.randrange(0,255),random.randrange(0,255),random.randrange(0,255))#self.trace_ray(ray, self.spheres)
 
 
 		image.save(self.outputImage + ".gif")
@@ -234,6 +272,6 @@ for v in trace.vertices:
 print "---------------"
 
 for s in trace.spheres:
-	print trace.vertices[s.vertexIndex].position
-	print trace.vertices[s.vertexIndex].normal
+	print s.position
+	print s.normal
 	print s.ambientMaterial.value

@@ -143,7 +143,7 @@ class Raytracer:
 		self.fileName = scene
 
 	def parseFile(self):
-        
+
 		file = open(self.fileName)
 
 		for line in file:
@@ -198,7 +198,7 @@ class Raytracer:
 				self.outputImage = args[1]
 			#Background - r g b
 			elif(command == "back"):
-				self.background = [int(args[1]), int(args[2]), int(args[3])]
+				self.background = (int(args[1]), int(args[2]), int(args[3]))
 			#Recursion Depth - n
 			elif(command == "rdepth"):
 				self.recursionDepth = int(args[1])
@@ -239,13 +239,10 @@ class Raytracer:
 
 				look = self.norm(camera.normal[:])
 				up = [0,1,0]
-				right = []
-				right.append((look[1]*up[2]) - (up[1]*look[2]))
-				right.append((look[2]*up[0]) - (up[2]*look[0]))
-				right.append((look[0]*up[1]) - (up[0]*look[2]))
+				right = self.norm(numpy.cross(look,up))
 
 				for c in range(len(look)):
-					look[c] *= u
+					look[c] *= d
 
 				for i in range(len(right)):
 					right[i] *= v
@@ -258,45 +255,53 @@ class Raytracer:
 
 				ray = Ray( camera.position, rayDirection )
 				
-				self.traceRay(ray)
+				result = self.traceRay(ray)
 
-
-				pixels[x,y] = ()
+				pixels[x,y] = result
 
 
 		image.save(self.outputImage + ".gif")
 
 	def traceRay(self,ray):
-		for s in spheres:
-			traceSphere(ray, s)
+		for s in self.spheres:
+			if self.traceSphere(ray, s):
+				mat = s.ambientMaterial.value
+				return (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))
+			else:
+				return self.background
+
 
 
 	def traceSphere(self,ray,sphere):
 		e = ray.position
 		c = sphere.position
 		d = ray.vector
-		
+
+		d = self.norm(d)
+
 		n = sphere.normal
 		radius = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
 
-		e_minus_c = self.sub(e,c)
-		d_dot_d   = self.dot(d,d)
-		discriminant = ((self.dot(d,e_minus_c))**2 - d_dot_d * (self.dot(e_minus_c,e_minus_c)-r**2))
+		e_minus_c = numpy.subtract(e,c)
+		d_dot_d   = numpy.dot(d,d)
+		discriminant = (numpy.dot(d,numpy.subtract(e, c)))**2 - ((numpy.dot(d,d) * (numpy.dot(numpy.subtract(e, c), numpy.subtract(e, c))-radius**2)))
+
 
 		if discriminant >= 0:
-			neg_d = self.dot([-1]*3,d)
 
-			t_plus  = (self.dot(neg_d,e_minus_c) + discriminant)/d_dot_d
-			t_minus = (self.dot(neg_d,e_minus_c) - discriminant)/d_dot_d
+			neg_d = []
+			for i in range(len(d)):
+				neg_d.append(d[i]*-1)
 
-			t_min = min(t_plus,t_minus)
-		
+			t_plus  = (numpy.dot(neg_d,e_minus_c) + discriminant)/d_dot_d
+			t_minus = (numpy.dot(neg_d,e_minus_c) - discriminant)/d_dot_d
+
+			return True
+		else:	
+			return False
 
 
-		            
-
-
-trace = raytracer(scene)
+trace = Raytracer(scene)
 trace.parseFile()
 trace.doIt()
 # for v in trace.vertices:

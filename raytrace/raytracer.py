@@ -120,7 +120,7 @@ class Ray:
 		self.position = p
 		self.vector = v
 
-class raytracer:
+class Raytracer:
 	fileName = ""
 	vertices = []
 	ambientMaterial = mAmbient()
@@ -233,40 +233,67 @@ class raytracer:
 
 				u = l + (r - l)*(x + .5)/width
 				v = b + (t - b)*(y + .5)/height
+				theta = camera.fustrum/2
 
-				d = width/(2*math.tan(camera.fustrum/2))
+				d = width/(2*math.tan(theta))
 
-				look = []
-
-				for c in camera.normal:
-					look.append(c * d)
-
-				look = self.norm(look)
-
-				up = [0,u,0]
-
+				look = self.norm(camera.normal[:])
+				up = [0,1,0]
 				right = []
 				right.append((look[1]*up[2]) - (up[1]*look[2]))
 				right.append((look[2]*up[0]) - (up[2]*look[0]))
 				right.append((look[0]*up[1]) - (up[0]*look[2]))
 
+				for c in range(len(look)):
+					look[c] *= u
+
+				for i in range(len(right)):
+					right[i] *= v
+
+				up = [0,u,0]
+
 				rayDirection = [look[0] + up[0] + right[0],
 								look[1] + up[1] + right[1],
-								look[2] + up[2] + right[2]]#map(sum, zip(look,map(sum, zip(up,right))))
+								look[2] + up[2] + right[2]]
 
 				ray = Ray( camera.position, rayDirection )
 				
-				# print ray.position
-				print rayDirection
+				self.traceRay(ray)
 
-				# pixels[x,y] = (random.randrange(0,255),random.randrange(0,255),random.randrange(0,255))#self.trace_ray(ray, self.spheres)
+
+				pixels[x,y] = ()
 
 
 		image.save(self.outputImage + ".gif")
 
+	def traceRay(self,ray):
+		for s in spheres:
+			traceSphere(ray, s)
 
 
-            
+	def traceSphere(self,ray,sphere):
+		e = ray.position
+		c = sphere.position
+		d = ray.vector
+		
+		n = sphere.normal
+		radius = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
+
+		e_minus_c = self.sub(e,c)
+		d_dot_d   = self.dot(d,d)
+		discriminant = ((self.dot(d,e_minus_c))**2 - d_dot_d * (self.dot(e_minus_c,e_minus_c)-r**2))
+
+		if discriminant >= 0:
+			neg_d = self.dot([-1]*3,d)
+
+			t_plus  = (self.dot(neg_d,e_minus_c) + discriminant)/d_dot_d
+			t_minus = (self.dot(neg_d,e_minus_c) - discriminant)/d_dot_d
+
+			t_min = min(t_plus,t_minus)
+		
+
+
+		            
 
 
 trace = raytracer(scene)

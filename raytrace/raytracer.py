@@ -14,15 +14,34 @@ class Light:
 
 class Point(Light):
 
-	pass
+	position = None
+	normal = None
+
+	def __init__(self,value,p,n):
+		self.value = value
+		self.position = p
+		self.normal = n
 
 class Directional(Light):
 
-	pass
+	position = None
+	normal = None
+
+	def __init__(self,value,p,n):
+		self.value = value
+		self.position = p
+		self.normal = n
 
 class Spot(Light):
 
-	pass
+	position = None
+	normal = None
+
+	def __init__(self,value,p,n):
+		self.value = value
+		self.position = p
+		self.normal = n
+
 class lAmbient(Light):
 
 	pass
@@ -81,10 +100,12 @@ class Vertex:
 
 class Camera:
 
-	vertexIndex = None
+	position = None
+	normal = None
 
-	def __init__(self,value):
-		self.vertexIndex = value
+	def __init__(self,p,n):
+		self.position = p
+		self.normal = n
 
 class raytracer:
 	fileName = ""
@@ -134,7 +155,7 @@ class raytracer:
 				self.transmissiveMaterial = Transmissive([float(args[1]), float(args[2]), float(args[3]), float(args[4])])
 			#Sphere - i
 			elif(command == "ss"):
-				self.spheres.append( Sphere(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
+				self.spheres.append( Sphere(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
 			#Triangle - i j k
 			elif(command == "ts"):
 				pass        
@@ -143,19 +164,19 @@ class raytracer:
 				pass        
 			#Point Light - i r g b
 			elif(command == "pl"):
-				self.lights.append( Point([float(args[1]), float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Point(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Directional Light - i r g b
 			elif(command == "dl"):
-				self.lights.append( Directional([float(args[1]), float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Directional(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Spot Light - i r g b
 			elif(command == "sl"):
-				self.lights.append( Spot([float(args[1]), float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Spot(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal,[float(args[2]), float(args[3]), float(args[4])]) )
 			#Ambient Light - r g b
 			elif(command == "al"):
 				self.lights.append( lAmbient([float(args[1]), float(args[2]), float(args[3])]) )
 			#Camera - i
 			elif(command == "cc"):
-				self.camera = Camera(int(args[1]))      
+				self.camera = Camera(self.vertices[int(args[1])-1].position,self.vertices[int(args[1])-1].normal)      
 			#Image Resolution - w h
 			elif(command == "ir"):
 				self.imageResolution = [int(args[1]),int(args[2])]
@@ -178,7 +199,6 @@ class raytracer:
 	# def dot(self, v1, v2): 
 	# 	return sum([x*y for x,y in zip(v1, v2)])
 
-	# # @classmethod
 	# def norm(self, v): 
 	# 	return [x/math.sqrt(self.dot(v,v)) for x in v]
 

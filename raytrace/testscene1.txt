@@ -1,6 +1,6 @@
 ## sample input file
 al 0.1 0.1 0.1
-output sample
+out sample
 ir 512 512
 rdepth 2
 back 0 0 0

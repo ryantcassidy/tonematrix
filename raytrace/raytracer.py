@@ -55,14 +55,16 @@ class Transmissive(Material):
 		Material.__init__(self,value)
 
 class Sphere:
-	vertexIndex = None
+	position = None
+	radius = None
 	ambientMaterial = None
 	diffuseMaterial = None
 	specularMaterial = None
 	transmissiveMaterial = None
 
-	def __init__(self,vi,am,dm,sm,tm):
-		self.vertexIndex = vi
+	def __init__(self,p,r,am,dm,sm,tm):
+		self.position = p
+		self.radius = r
 		self.ambientMaterial = am
 		self.diffuseMaterial = dm
 		self.specularMaterial = sm
@@ -132,7 +134,7 @@ class raytracer:
 				self.transmissiveMaterial = Transmissive([float(args[1]), float(args[2]), float(args[3]), float(args[4])])
 			#Sphere - i
 			elif(command == "ss"):
-				self.spheres.append( Sphere(int(args[1]),self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
+				self.spheres.append( Sphere(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,self.ambientMaterial,self.diffuseMaterial,self.specularMaterial,self.transmissiveMaterial) )        
 			#Triangle - i j k
 			elif(command == "ts"):
 				pass        
@@ -170,44 +172,16 @@ class raytracer:
 			else:
 				pass
 
-	def sub(self, v1, v2): 
-		return [x-y for x,y in zip(v1, v2)]
+	# def sub(self, v1, v2): 
+	# 	return [x-y for x,y in zip(v1, v2)]
 
-	def dot(self, v1, v2): 
-		return sum([x*y for x,y in zip(v1, v2)])
+	# def dot(self, v1, v2): 
+	# 	return sum([x*y for x,y in zip(v1, v2)])
 
-	# @classmethod
-	def norm(self, v): 
-		return [x/math.sqrt(self.dot(v,v)) for x in v]
+	# # @classmethod
+	# def norm(self, v): 
+	# 	return [x/math.sqrt(self.dot(v,v)) for x in v]
 
-	def trace_sphere(self, r, s, tmin, color):
-		s = (self.vertices[s.vertexIndex].position,self.vertices[s.vertexIndex].normal[0],(255,0,0))
-
-		sr = self.sub(s[0], r[0])
-		dsr = self.dot(sr, r[1])
-
-		d = dsr*dsr - self.dot(sr,sr) + s[1]
-		if d < 0: return
-		d = math.sqrt(d)
-
-		t1 = dsr + d
-		if t1 < 0: return
-
-		t2 = dsr - d
-		if t2 > tmin[0]: return
-
-		if t2 < 0:
-		    tmin[0] = t1
-		else:
-		    tmin[0] = t2
-		color[:] = [s[2]]
-
-	def trace_ray(self, ray, spheres):
-		color = [(0, 0, 0)]
-		tmin = [100000]
-		for s in spheres:
-			self.trace_sphere(ray, s, tmin, color)
-		return color[0]
 	def doIt(self):
 		width = self.imageResolution[0]
 		height = self.imageResolution[1]
@@ -221,7 +195,7 @@ class raytracer:
 			for y in range(height):
 				#CANT USE THIS UNLESS YOU UNDERSTAND WHAT ITS DOING AND REWRITE IT
 				ray = ( (0,0,0), self.norm(((x-width/2.0)/width, (y-height/2.0)/width, 1)) )
-				pixels[x,y] = self.trace_ray(ray, self.spheres)
+				pixels[x,y] = (255,0,0)#self.trace_ray(ray, self.spheres)
 
 
 		image.save(self.outputImage + ".gif")

@@ -1,3 +1,4 @@
+import Image
 import sys
 
 args = sys.argv
@@ -99,6 +100,8 @@ class raytracer:
     background = None
     recursionDepth = None
 
+
+
     def __init__(self,scene):
         self.fileName = scene
 
@@ -152,6 +155,7 @@ class raytracer:
                 self.camera = Camera(int(args[1]))      
             #Image Resolution - w h
             elif(command == "ir"):
+                print "IMAGE Resolution"
                 self.imageResolution = [int(args[1]),int(args[2])]
             #Out Image - filename
             elif(command == "out"):
@@ -165,17 +169,26 @@ class raytracer:
             else:
                 pass
                 #Comments
+
+    def doIt(self):
+        width = self.imageResolution[0]
+        height = self.imageResolution[1]
+        image = Image.new("RGB", (width,height))
+        image.save(self.outputImage + ".gif")
+
             
 
 
-# trace = raytracer(scene)
-# trace.parseFile()
-# for v in trace.vertices:
-#     print v.position
+trace = raytracer(scene)
+trace.parseFile()
+print trace.imageResolution
+trace.doIt()
+for v in trace.vertices:
+    print v.position
 
-# print "---------------"
+print "---------------"
 
-# for s in trace.spheres:
-#     print trace.vertices[s.vertexIndex].position
-#     print trace.vertices[s.vertexIndex].normal
-#     print s.ambientMaterial.value
+for s in trace.spheres:
+    print trace.vertices[s.vertexIndex].position
+    print trace.vertices[s.vertexIndex].normal
+    print s.ambientMaterial.value

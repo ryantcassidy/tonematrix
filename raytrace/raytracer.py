@@ -234,26 +234,32 @@ class raytracer:
 				u = l + (r - l)*(x + .5)/width
 				v = b + (t - b)*(y + .5)/height
 
-				d = -1 * width/(2*math.tan(camera.fustrum/2))
+				d = width/(2*math.tan(camera.fustrum/2))
 
 				look = []
 
-				for i in range(len(camera.normal)):
-					v = camera.normal[i]
-					look.append(v * d)
+				for c in camera.normal:
+					look.append(c * d)
+
+				look = self.norm(look)
 
 				up = [0,u,0]
 
-				right = numpy.cross(look,up)
+				right = []
+				right.append((look[1]*up[2]) - (up[1]*look[2]))
+				right.append((look[2]*up[0]) - (up[2]*look[0]))
+				right.append((look[0]*up[1]) - (up[0]*look[2]))
 
-				rayDirection = map(sum, zip(look,map(sum, zip(up,right))))
+				rayDirection = [look[0] + up[0] + right[0],
+								look[1] + up[1] + right[1],
+								look[2] + up[2] + right[2]]#map(sum, zip(look,map(sum, zip(up,right))))
 
 				ray = Ray( camera.position, rayDirection )
 				
 				# print ray.position
-				print ray.vector
+				print rayDirection
 
-				pixels[x,y] = (random.randrange(0,255),random.randrange(0,255),random.randrange(0,255))#self.trace_ray(ray, self.spheres)
+				# pixels[x,y] = (random.randrange(0,255),random.randrange(0,255),random.randrange(0,255))#self.trace_ray(ray, self.spheres)
 
 
 		image.save(self.outputImage + ".gif")
@@ -266,12 +272,12 @@ class raytracer:
 trace = raytracer(scene)
 trace.parseFile()
 trace.doIt()
-for v in trace.vertices:
-	print v.position
+# for v in trace.vertices:
+# 	print v.position
 
-print "---------------"
+# print "---------------"
 
-for s in trace.spheres:
-	print s.position
-	print s.normal
-	print s.ambientMaterial.value
+# for s in trace.spheres:
+# 	print s.position
+# 	print s.normal
+# 	print s.ambientMaterial.value

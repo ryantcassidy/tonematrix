@@ -329,10 +329,10 @@ class Raytracer:
 						pointLight = light
 						break
 
-				lightDirection = pointLight.position[:]
-				lightDirection[0] -= s.position[0]
-				lightDirection[1] -= s.position[1]
-				lightDirection[2] -= s.position[2]
+				lightDirection = s.position[:]
+				lightDirection[0] -= pointLight.position[0]
+				lightDirection[1] -= pointLight.position[1]
+				lightDirection[2] -= pointLight.position[2]
 
 				viewDirection = rayVector
 
@@ -347,8 +347,8 @@ class Raytracer:
 				specularGreen = (s.specularMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
 				diffuseGreen  = (s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,lightDirection)))
 
-				# print "SPEC   " + str(specularGreen)
-				# print "DIFFUSE   " + str(s.diffuseMaterial.value[1]) + " " + str(pointLight.value[1]) + " " + str(max(0,numpy.dot(surfaceNormal,lightDirection)))
+				print "SPEC   " + str(specularGreen)
+				print "DIFFUSE   " + str(s.diffuseMaterial.value[1]) + " " + str(pointLight.value[1]) + " " + str(max(0,numpy.dot(surfaceNormal,lightDirection)))
 
 				specularBlue = (s.specularMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
 				diffuseBlue  = (s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,lightDirection))) 

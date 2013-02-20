@@ -228,37 +228,52 @@ class Raytracer:
 
 		for x in range(width):
 			for y in range(height):
+
+				# RIGHT, LEFT, TOP, BOTTOM. center of image x-y plane is 0,0.
 				r = width/2
 				l = -1 * r
 				t = height/2
 				b = -1 * t
 
+				# U, V = co-ordinates on image frame plane for ray to cast thru
 				u = l + (r - l)*(x + .5)/width
 				v = b + (t - b)*(y + .5)/height
+
+				# camera frustum / 2 is the angle used in calculating distance to frame
 				theta = camera.fustrum/2
 
+				# D = distance to frame
 				d = width/(2*math.tan(theta))
 
+				# direction vector of camera (unit)
 				look = self.norm(camera.normal[:])
+				# up is always <0,1,0>, unit
 				up = [0,1,0]
+
+				# right vector is perpendicular to up, look
 				right = [(look[1] * up[2]) - (up[1] * look[2]),
 						 (look[2] * up[0]) - (up[2] * look[0]),
 						 (look[0] * up[1]) - (up[0] * look[1])]
 
+				# scale the look vector by distance
 				look[0] *= d
 				look[1] *= d
 				look[2] *= d
 
+				# scale right vector by V coord
 				right[0] *= v
 				right[1] *= v
 				right[2] *= v
 
+				# scale up vector by U coord
 				up = [0,u,0]
 
+				# ray direction vector is all these combined
 				rayDirection = [look[0] + up[0] + right[0],
 								look[1] + up[1] + right[1],
 								look[2] + up[2] + right[2]]
 
+				# turn into python ray
 				ray = Ray( camera.position, rayDirection )
 				
 				result = self.traceRay(ray,lights)

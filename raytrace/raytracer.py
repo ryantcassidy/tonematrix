@@ -295,57 +295,58 @@ class Raytracer:
 	def traceRay(self,ray,lights):
 		results = []
 		for s in self.spheres:
-			mat = s.ambientMaterial.value
-			results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
+			# mat = s.ambientMaterial.value
+			# results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
 
-			# t = self.traceSphere(ray,s)
-			# if t:
-			# 	pointOnSphere = ray.position[:]
-			# 	pointOnSphere[0] += ray.vector[0] * t
-			# 	pointOnSphere[1] += ray.vector[1] * t
-			# 	pointOnSphere[2] += ray.vector[2] * t
+			t = self.traceSphere(ray,s)
+			if t:
+				pointOnSphere = ray.position[:]
+				pointOnSphere[0] += ray.vector[0] * t
+				pointOnSphere[1] += ray.vector[1] * t
+				pointOnSphere[2] += ray.vector[2] * t
 
-			# 	# print pointOnSphere
+				# print pointOnSphere
 
-			# 	pointNormal = pointOnSphere[:]
-			# 	pointNormal[0] += s.position[0]
-			# 	pointNormal[1] += s.position[1]
-			# 	pointNormal[2] += s.position[2]
+				pointNormal = pointOnSphere[:]
+				pointNormal[0] += s.position[0]
+				pointNormal[1] += s.position[1]
+				pointNormal[2] += s.position[2]
 
-			# 	pointLight = None
-			# 	for light in lights:
-			# 		if light.__class__.__name__ == 'Point':
-			# 			pointLight = light
-			# 			break
+				pointLight = None
+				for light in lights:
+					if light.__class__.__name__ == 'Point':
+						pointLight = light
+						break
 
-			# 	pointLightNormal = self.norm(self.sub(pointNormal,pointLight.position))
-			# 	pointNormal = self.norm(pointNormal)
+				pointLightNormal = self.norm(self.sub(pointNormal,pointLight.position))
+				pointNormal = self.norm(pointNormal)
 
-			# 	tempDot = numpy.dot(pointNormal,pointLightNormal)
-			# 	surfaceTangent = max(0,tempDot)
+				tempDot = numpy.dot(pointNormal,pointLightNormal)
+				surfaceTangent = max(0,tempDot)
 
-			# 	diffuseRed = s.diffuseMaterial.value[0]
-			# 	pixelRed = diffuseRed * pointLight.value[0] * surfaceTangent
-			# 	diffuseGreen = s.diffuseMaterial.value[1]
-			# 	pixelGreen = diffuseRed * pointLight.value[1] * surfaceTangent
-			# 	diffuseBlue = s.diffuseMaterial.value[2]
-			# 	pixelBlue = diffuseRed * pointLight.value[2] * surfaceTangent
+				diffuseRed = s.diffuseMaterial.value[0]
+				pixelRed = diffuseRed * pointLight.value[0] * surfaceTangent
+				diffuseGreen = s.diffuseMaterial.value[1]
+				pixelGreen = diffuseRed * pointLight.value[1] * surfaceTangent
+				diffuseBlue = s.diffuseMaterial.value[2]
+				pixelBlue = diffuseRed * pointLight.value[2] * surfaceTangent
 			
+				print surfaceTangent
 
-			# 	# print "Diffuse"
-			# 	# print diffuseRed
-			# 	# print diffuseGreen
-			# 	# print diffuseBlue
-			# 	# print "Pixel"
-			# 	# print pixelRed
-			# 	# print pixelGreen
-			# 	# print pixelBlue
-			# 	# print "Point Light"
-			# 	# print pointLight.value[0]
-			# 	# print pointLight.value[1]
-			# 	# print pointLight.value[2]
+				# print "Diffuse"
+				# print diffuseRed
+				# print diffuseGreen
+				# print diffuseBlue
+				# print "Pixel"
+				# print pixelRed
+				# print pixelGreen
+				# print pixelBlue
+				# print "Point Light"
+				# print pointLight.value[0]
+				# print pointLight.value[1]
+				# print pointLight.value[2]
 
-			# 	results.append((t,(int(pixelRed),int(pixelGreen),int(pixelBlue))))
+				results.append((t,(int(pixelRed),int(pixelGreen),int(pixelBlue))))
 
 		results = filter(lambda tuple: tuple[0], results)
 		results = sorted(results, key=lambda tuple: tuple[1])

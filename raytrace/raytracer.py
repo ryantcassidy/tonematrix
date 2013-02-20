@@ -299,8 +299,9 @@ class Raytracer:
 		for s in self.spheres:
 			results.append(self.traceSphere(ray,s))
 			# get rid of false results, sort by T distance
-			f_results = filter(None, results)
-			s_results = sorted(f_results, key=lambda duple: duple[0])
+
+		f_results = filter(None, results)
+		s_results = sorted(f_results, key=lambda duple: duple[0])
 	
 	  # We now know which sphere is being hit by this ray.
 		if s_results:

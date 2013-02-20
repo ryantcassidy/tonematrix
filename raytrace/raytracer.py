@@ -215,15 +215,17 @@ class Raytracer:
 						v1[0] * v2[1] - v2[0] * v1[1]]
 
 	def doIt(self):
+		# time things!
 		start = int(round(time.time() * 1000))
+		# image width / height
 		width = self.imageResolution[0]
 		height = self.imageResolution[1]
 		image = Image.new("RGB", (width,height))
 		pixels = image.load()
-		camera = self.camera
-		# ray = ( (0,0,0), self.norm(((0-width/2.0)/width, (0-height/2.0)/width, 1)) )
-		# pixels[0,0] = self.trace_ray(ray, spheres)
 
+		camera = self.camera
+
+		# FOR EACH PIXEL: CAST A RAY (pew pew!)
 		for x in range(width):
 			for y in range(height):
 				# RIGHT, LEFT, TOP, BOTTOM. center of image x-y plane is 0,0.
@@ -246,6 +248,7 @@ class Raytracer:
 				up_v = [0,1,0]
 
 				# direction vector of camera (unit) = -W
+				# Create orthonormal basis based on camera
 				W = self.norm(camera.normal[:])
 				U = self.norm(self.cross(up_v, W))
 				V = self.cross(W, U)
@@ -280,9 +283,7 @@ class Raytracer:
 				# trace the ray
 				result = self.traceRay(ray,self.lights)
 				result_tuple = (result[0]* 255, result[1] * 255, result[2] * 255)
-				print result_tuple
 				pixels[x,y] = result_tuple
-
 
 		image.save(self.outputImage + ".gif")
 		end = int(round(time.time() * 1000)) - start
@@ -296,8 +297,10 @@ class Raytracer:
 			# check if intersect with sphere
 			results.append(self.traceSphere(ray,s))
 
+		# get rid of false results, sort by T distance
 		f_results = filter(None, results)
 		s_results = sorted(f_results, key=lambda duple: duple[0])
+
 		if s_results:
 			return s_results[0][1]
 		else:
@@ -325,9 +328,11 @@ class Raytracer:
 		if discriminant >= 0:
 			neg_d = (-1 * d[0], -1 * d[1], -1 * d[2])
 
+			# Find out results with both values of T
 			t_plus  = (self.dot(neg_d,e_minus_c) + math.sqrt(discriminant))/d_dot_d
 			t_minus = (self.dot(neg_d,e_minus_c) - math.sqrt(discriminant))/d_dot_d
 
+			# determine min / max
 			tmin = min(t_plus,t_minus)
 			tmax = max(t_plus,t_minus)
 			

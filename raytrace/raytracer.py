@@ -254,6 +254,7 @@ class Raytracer:
 
 				# direction vector of camera (unit)
 				look = self.norm(camera.normal[:])
+
 				# up is always <0,1,0>, unit
 				up = [0,1,0]
 
@@ -261,6 +262,8 @@ class Raytracer:
 				right = [(look[1] * up[2]) - (up[1] * look[2]),
 						 (look[2] * up[0]) - (up[2] * look[0]),
 						 (look[0] * up[1]) - (up[0] * look[1])]
+
+				right = self.norm(right)
 
 				# scale the look vector by distance
 				look[0] *= d
@@ -304,17 +307,20 @@ class Raytracer:
 			# check if intersect with sphere
 			t = self.traceSphere(ray,s)
 			if t:
+
+				rayVector = self.norm(ray.vector)
+
 				pointOnSphere = ray.position[:]
-				pointOnSphere[0] += ray.vector[0] * t
-				pointOnSphere[1] += ray.vector[1] * t
-				pointOnSphere[2] += ray.vector[2] * t
+				pointOnSphere[0] += rayVector[0] * t
+				pointOnSphere[1] += rayVector[1] * t
+				pointOnSphere[2] += rayVector[2] * t
 
 				# print pointOnSphere
 
 				pointNormal = pointOnSphere[:]
-				pointNormal[0] += s.position[0]
-				pointNormal[1] += s.position[1]
-				pointNormal[2] += s.position[2]
+				pointNormal[0] -= s.position[0]
+				pointNormal[1] -= s.position[1]
+				pointNormal[2] -= s.position[2]
 
 				pointLight = None
 				for light in lights:
@@ -322,20 +328,33 @@ class Raytracer:
 						pointLight = light
 						break
 
-				pointLightNormal = self.norm(self.sub(pointNormal,pointLight.position))
+				pointLightNormal = self.norm(self.sub(pointOnSphere,pointLight.position))
 				pointNormal = self.norm(pointNormal)
 
 				tempDot = numpy.dot(pointNormal,pointLightNormal)
 				surfaceTangent = max(0,tempDot)
 
-				diffuseRed = s.diffuseMaterial.value[0]
-				pixelRed = diffuseRed * pointLight.value[0] * surfaceTangent
-				diffuseGreen = s.diffuseMaterial.value[1]
-				pixelGreen = diffuseRed * pointLight.value[1] * surfaceTangent
-				diffuseBlue = s.diffuseMaterial.value[2]
-				pixelBlue = diffuseRed * pointLight.value[2] * surfaceTangent
+				diffuseRed = s.diffuseMaterial.value[0]*255
+				ambientRed = s.ambientMaterial.value[0]*255
+				red = (diffuseRed + ambientRed)/2
+				pixelRed = red * pointLight.value[0] * surfaceTangent
+
+				diffuseGreen = s.diffuseMaterial.value[1]*255
+				ambientGreen = s.ambientMaterial.value[1]*255
+				green = (diffuseGreen + ambientGreen)/2
+				pixelGreen = green * pointLight.value[1] * surfaceTangent
+
+				diffuseBlue = s.diffuseMaterial.value[2]*255
+				ambientBlue = s.ambientMaterial.value[2]*255
+				blue = (diffuseBlue + ambientBlue)/2
+				pixelBlue = blue * pointLight.value[2] * surfaceTangent
+				colors = (int(pixelRed),int(pixelGreen),int(pixelBlue))
 			
-				print surfaceTangent
+				# print pointLight.value
+				# print surfaceTangent
+				# print (pixelRed,pixelGreen,pixelBlue)
+				# print colors
+
 
 				# print "Diffuse"
 				# print diffuseRed
@@ -350,7 +369,7 @@ class Raytracer:
 				# print pointLight.value[1]
 				# print pointLight.value[2]
 
-				results.append((t,(int(pixelRed),int(pixelGreen),int(pixelBlue))))
+				results.append((t,colors))
 
 		results = filter(lambda tuple: tuple[0], results)
 		results = sorted(results, key=lambda tuple: tuple[1])
@@ -383,7 +402,7 @@ class Raytracer:
 
 		
 		if discriminant >= 0:
-
+			discriminant = discriminant**.5
 			neg_d = []
 			for i in range(len(d)):
 				neg_d.append(d[i]*-1)
@@ -393,6 +412,7 @@ class Raytracer:
 
 			tmin = min(t_plus,t_minus)
 			tmax = max(t_plus,t_minus)
+			
 			if tmin >= 0:
 				return tmin
 			elif tmax >= 0:

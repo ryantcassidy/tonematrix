@@ -107,11 +107,7 @@ class Camera:
 	normal = None
 	fustrum = None
 
-<<<<<<< HEAD:raytrace/raytracer.py
 	def __init__(self,p,n,f=math.pi/3):
-=======
-	def __init__(self,p,n,f=math.pi/6):
->>>>>>>  more cleaning:raytrace/raytracer.py
 		self.position = p
 		self.normal = n
 		self.fustrum = f

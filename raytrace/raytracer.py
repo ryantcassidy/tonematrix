@@ -3,6 +3,7 @@ import sys
 import math
 import numpy
 import random
+import time
 
 args = sys.argv
 scene = args[1]
@@ -216,6 +217,7 @@ class Raytracer:
 		return [x/math.sqrt(self.dot(v,v)) for x in v]
 
 	def doIt(self):
+		start = int(round(time.time() * 1000))
 		width = self.imageResolution[0]
 		height = self.imageResolution[1]
 		image = Image.new("RGB", (width,height))
@@ -239,13 +241,17 @@ class Raytracer:
 
 				look = self.norm(camera.normal[:])
 				up = [0,1,0]
-				right = self.norm(numpy.cross(look,up))
+				right = [(look[1] * up[2]) - (up[1] * look[2]),
+						 (look[2] * up[0]) - (up[2] * look[0]),
+						 (look[0] * up[1]) - (up[0] * look[1])]
 
-				for c in range(len(look)):
-					look[c] *= d
+				look[0] *= d
+				look[1] *= d
+				look[2] *= d
 
-				for i in range(len(right)):
-					right[i] *= v
+				right[0] *= v
+				right[1] *= v
+				right[2] *= v
 
 				up = [0,u,0]
 
@@ -255,20 +261,53 @@ class Raytracer:
 
 				ray = Ray( camera.position, rayDirection )
 				
-				result = self.traceRay(ray)
+				result = self.traceRay(ray,lights)
 
 				pixels[x,y] = result
 
 
 		image.save(self.outputImage + ".gif")
+		end = int(round(time.time() * 1000)) - start
+		print end
 
-	def traceRay(self,ray):
+	def traceRay(self,ray,lights):
+		results = []
 		for s in self.spheres:
-			if self.traceSphere(ray, s):
-				mat = s.ambientMaterial.value
-				return (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))
-			else:
-				return self.background
+			# mat = s.ambientMaterial.value
+			# results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
+
+			t = self.traceSphere(ray,s)
+
+			pointOnSphere = ray.position[:]
+
+			pointOnSphere[0] += ray.vector[0] * t
+			pointOnSphere[1] += ray.vector[1] * t
+			pointOnSphere[2] += ray.vector[2] * t
+
+			pointNormal = pointOnSphere[:]
+			pointNormal[0] -= s.position[0]
+			pointNormal[1] -= s.position[1]
+			pointNormal[2] -= s.position[2]
+
+			pointLight = None
+			for light in lights:
+				if light.__class__.__name__ == 'Point':
+					pointLight = light
+					break
+
+			diffuseRed = s.diffuseMaterial.value[0]
+			pixelRed = diffuseRed * pointLight.value[0] * max(0,numpy.dot(pointNormal,pointLight.normal))
+			diffuseGreen = s.diffuseMaterial.value[1]
+			pixelRed = diffuseRed * pointLight.value[1] * max(0,numpy.dot(pointNormal,pointLight.normal))
+			diffuseBlue = s.diffuseMaterial.value[2]
+			pixelRed = diffuseRed * pointLight.value[2] * max(0,numpy.dot(pointNormal,pointLight.normal))
+
+		results = filter(lambda tuple: tuple[0], results)
+		results = sorted(results, key=lambda tuple: tuple[1])
+		if results:
+			return results[0][1]
+		else:
+			return self.background
 
 
 
@@ -282,9 +321,9 @@ class Raytracer:
 		n = sphere.normal
 		radius = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
 
-		e_minus_c = numpy.subtract(e,c)
+		e_minus_c = numpy.subtract(e, c)
 		d_dot_d   = numpy.dot(d,d)
-		discriminant = (numpy.dot(d,numpy.subtract(e, c)))**2 - ((numpy.dot(d,d) * (numpy.dot(numpy.subtract(e, c), numpy.subtract(e, c))-radius**2)))
+		discriminant = (numpy.dot(d,e_minus_c))**2 - ((d_dot_d * (numpy.dot(e_minus_c, e_minus_c)-radius**2)))
 
 
 		if discriminant >= 0:
@@ -296,7 +335,7 @@ class Raytracer:
 			t_plus  = (numpy.dot(neg_d,e_minus_c) + discriminant)/d_dot_d
 			t_minus = (numpy.dot(neg_d,e_minus_c) - discriminant)/d_dot_d
 
-			return True
+			return min(t_plus,t_minus)
 		else:	
 			return False
 

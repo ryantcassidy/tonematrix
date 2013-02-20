@@ -217,6 +217,9 @@ class Raytracer:
 	def sub(self, v1, v2): 
 		return [x-y for x,y in zip(v1, v2)]
 
+	def add(self, v1, v2): 
+		return [x+y for x,y in zip(v1, v2)]
+
 	def dot(self, v1, v2): 
 		return sum([x*y for x,y in zip(v1, v2)])
 
@@ -287,7 +290,7 @@ class Raytracer:
 				ray = Ray( camera.position, rayDirection )
 				
 				# trace the ray
-				result = self.traceRay(ray,self.lights)
+				result = self.traceRay(ray)
 
 				pixels[x,y] = result
 
@@ -296,78 +299,65 @@ class Raytracer:
 		end = int(round(time.time() * 1000)) - start
 		print end
 
-	def traceRay(self,ray,lights):
+	def traceRay(self,ray):
 		results = []
 
 		# for every sphere
 		for s in self.spheres:
-			# mat = s.ambientMaterial.value
-			# results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
 
-			# check if intersect with sphere
 			t = self.traceSphere(ray,s)
 			if t:
 
-				rayVector = self.norm(ray.vector)
+				surfaceNormal = None
+				lightDirection = None
+				viewDirection = None
 
+				rayVector = self.norm(ray.vector)
 				pointOnSphere = ray.position[:]
 				pointOnSphere[0] += rayVector[0] * t
 				pointOnSphere[1] += rayVector[1] * t
 				pointOnSphere[2] += rayVector[2] * t
 
-				# print pointOnSphere
-
-				pointNormal = pointOnSphere[:]
-				pointNormal[0] -= s.position[0]
-				pointNormal[1] -= s.position[1]
-				pointNormal[2] -= s.position[2]
+				surfaceNormal = pointOnSphere[:]
+				surfaceNormal[0] -= s.position[0]
+				surfaceNormal[1] -= s.position[1]
+				surfaceNormal[2] -= s.position[2]
 
 				pointLight = None
-				for light in lights:
+				for light in self.lights:
 					if light.__class__.__name__ == 'Point':
 						pointLight = light
 						break
 
-				pointLightNormal = self.norm(self.sub(pointOnSphere,pointLight.position))
-				pointNormal = self.norm(pointNormal)
+				lightDirection = pointLight.position[:]
+				lightDirection[0] -= s.position[0]
+				lightDirection[1] -= s.position[1]
+				lightDirection[2] -= s.position[2]
 
-				tempDot = numpy.dot(pointNormal,pointLightNormal)
-				surfaceTangent = max(0,tempDot)
+				viewDirection = rayVector
 
-				diffuseRed = s.diffuseMaterial.value[0]*255
-				ambientRed = s.ambientMaterial.value[0]*255
-				red = (diffuseRed + ambientRed)/2
-				pixelRed = red * pointLight.value[0] * surfaceTangent
+				surfaceNormal = self.norm(surfaceNormal)
+				lightDirection = self.norm(lightDirection)
+				viewDirection = self.norm(viewDirection)
+				halfVector = self.norm(self.add(viewDirection,lightDirection))
 
-				diffuseGreen = s.diffuseMaterial.value[1]*255
-				ambientGreen = s.ambientMaterial.value[1]*255
-				green = (diffuseGreen + ambientGreen)/2
-				pixelGreen = green * pointLight.value[1] * surfaceTangent
+				specularRed = (s.specularMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+				diffuseRed  = (s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,lightDirection)))
 
-				diffuseBlue = s.diffuseMaterial.value[2]*255
-				ambientBlue = s.ambientMaterial.value[2]*255
-				blue = (diffuseBlue + ambientBlue)/2
-				pixelBlue = blue * pointLight.value[2] * surfaceTangent
-				colors = (int(pixelRed),int(pixelGreen),int(pixelBlue))
-			
-				# print pointLight.value
-				# print surfaceTangent
-				# print (pixelRed,pixelGreen,pixelBlue)
-				# print colors
+				specularGreen = (s.specularMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+				diffuseGreen  = (s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,lightDirection)))
 
+				# print "SPEC   " + str(specularGreen)
+				# print "DIFFUSE   " + str(s.diffuseMaterial.value[1]) + " " + str(pointLight.value[1]) + " " + str(max(0,numpy.dot(surfaceNormal,lightDirection)))
 
-				# print "Diffuse"
-				# print diffuseRed
-				# print diffuseGreen
-				# print diffuseBlue
-				# print "Pixel"
-				# print pixelRed
-				# print pixelGreen
-				# print pixelBlue
-				# print "Point Light"
-				# print pointLight.value[0]
-				# print pointLight.value[1]
-				# print pointLight.value[2]
+				specularBlue = (s.specularMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+				diffuseBlue  = (s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,lightDirection))) 
+
+				pixelRed = (s.ambientMaterial.value[0] + diffuseRed + specularRed)
+				pixelGreen = (s.ambientMaterial.value[1] + diffuseGreen + specularGreen)
+				pixelBlue = (s.ambientMaterial.value[2] + diffuseBlue + specularBlue)
+				
+				colors = (int(pixelRed*255),int(pixelGreen*255),int(pixelBlue*255))
 
 				results.append((t,colors))
 
@@ -397,12 +387,11 @@ class Raytracer:
 		d_dot_d   = self.dot(d,d)
 
 		# discriminant to see if we hit 
-		discriminant = (self.dot(d, e_minus_c))**2 -
-		 							 (d_dot_d * (self.dot(e_minus_c, e_minus_c) - (radius**2)))
+		discriminant = (self.dot(d, e_minus_c))**2 - (d_dot_d * (self.dot(e_minus_c, e_minus_c) - (radius**2)))
 
 		
 		if discriminant >= 0:
-			discriminant = discriminant**.5
+
 			neg_d = []
 			for i in range(len(d)):
 				neg_d.append(d[i]*-1)

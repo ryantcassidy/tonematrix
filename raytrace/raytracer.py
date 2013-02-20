@@ -107,7 +107,11 @@ class Camera:
 	normal = None
 	fustrum = None
 
+<<<<<<< HEAD:raytrace/raytracer.py
 	def __init__(self,p,n,f=math.pi/3):
+=======
+	def __init__(self,p,n,f=math.pi/6):
+>>>>>>>  more cleaning:raytrace/raytracer.py
 		self.position = p
 		self.normal = n
 		self.fustrum = f
@@ -283,6 +287,7 @@ class Raytracer:
 				# turn into python ray
 				ray = Ray( camera.position, rayDirection )
 				
+				# trace the ray
 				result = self.traceRay(ray,self.lights)
 
 				pixels[x,y] = result
@@ -294,10 +299,13 @@ class Raytracer:
 
 	def traceRay(self,ray,lights):
 		results = []
+
+		# for every sphere
 		for s in self.spheres:
 			# mat = s.ambientMaterial.value
 			# results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
 
+			# check if intersect with sphere
 			t = self.traceSphere(ray,s)
 			if t:
 				pointOnSphere = ray.position[:]
@@ -358,20 +366,26 @@ class Raytracer:
 
 
 	def traceSphere(self,ray,sphere):
+		# e = eye, cam pos
 		e = ray.position
+		# c = sphere center
 		c = sphere.position
-		d = ray.vector
+		# d = unit vector towards image plane
+		d = self.norm(ray.vector)
 
-		d = self.norm(d)
-
+		# n = sphere normal, radius is length
 		n = sphere.normal
 		radius = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
 
-		e_minus_c = numpy.subtract(e, c)
-		d_dot_d   = numpy.dot(d,d)
-		discriminant = (numpy.dot(d,e_minus_c))**2 - ((d_dot_d * (numpy.dot(e_minus_c, e_minus_c)-radius**2)))
+	  # simplify below calculations
+		e_minus_c = ( e[0] - c[0], e[1] - c[1], e[2] - c[2] )
+		d_dot_d   = self.dot(d,d)
 
+		# discriminant to see if we hit 
+		discriminant = (self.dot(d, e_minus_c))**2 -
+		 							 (d_dot_d * (self.dot(e_minus_c, e_minus_c) - (radius**2)))
 
+		
 		if discriminant >= 0:
 
 			neg_d = []

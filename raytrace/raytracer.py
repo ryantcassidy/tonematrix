@@ -20,7 +20,7 @@ class Point(Light):
 	position = None
 	normal = None
 
-	def __init__(self,value,p,n):
+	def __init__(self,p,n,value):
 		self.value = value
 		self.position = p
 		self.normal = n
@@ -30,7 +30,7 @@ class Directional(Light):
 	position = None
 	normal = None
 
-	def __init__(self,value,p,n):
+	def __init__(self,p,n,value):
 		self.value = value
 		self.position = p
 		self.normal = n
@@ -40,7 +40,7 @@ class Spot(Light):
 	position = None
 	normal = None
 
-	def __init__(self,value,p,n):
+	def __init__(self,p,n,value):
 		self.value = value
 		self.position = p
 		self.normal = n
@@ -107,7 +107,7 @@ class Camera:
 	normal = None
 	fustrum = None
 
-	def __init__(self,p,n,f=30):
+	def __init__(self,p,n,f=math.pi/3):
 		self.position = p
 		self.normal = n
 		self.fustrum = f
@@ -178,19 +178,26 @@ class Raytracer:
 				pass        
 			#Point Light - i r g b
 			elif(command == "pl"):
-				self.lights.append( Point(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Point(self.vertices[int(args[1])].position,
+										  self.vertices[int(args[1])].normal,
+										  [float(args[2]), float(args[3]), float(args[4])]) )
 			#Directional Light - i r g b
 			elif(command == "dl"):
-				self.lights.append( Directional(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Directional(self.vertices[int(args[1])].position,
+												self.vertices[int(args[1])].normal,
+												[float(args[2]), float(args[3]), float(args[4])]) )
 			#Spot Light - i r g b
 			elif(command == "sl"):
-				self.lights.append( Spot(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal,[float(args[2]), float(args[3]), float(args[4])]) )
+				self.lights.append( Spot(self.vertices[int(args[1])].position,
+										 self.vertices[int(args[1])].normal,
+										 [float(args[2]), float(args[3]), float(args[4])]) )
 			#Ambient Light - r g b
 			elif(command == "al"):
 				self.lights.append( lAmbient([float(args[1]), float(args[2]), float(args[3])]) )
 			#Camera - i
 			elif(command == "cc"):
-				self.camera = Camera(self.vertices[int(args[1])].position,self.vertices[int(args[1])].normal)      
+				self.camera = Camera(self.vertices[int(args[1])].position,
+									 self.vertices[int(args[1])].normal)      
 			#Image Resolution - w h
 			elif(command == "ir"):
 				self.imageResolution = [int(args[1]),int(args[2])]
@@ -276,7 +283,7 @@ class Raytracer:
 				# turn into python ray
 				ray = Ray( camera.position, rayDirection )
 				
-				result = self.traceRay(ray,lights)
+				result = self.traceRay(ray,self.lights)
 
 				pixels[x,y] = result
 
@@ -288,34 +295,57 @@ class Raytracer:
 	def traceRay(self,ray,lights):
 		results = []
 		for s in self.spheres:
-			# mat = s.ambientMaterial.value
-			# results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
+			mat = s.ambientMaterial.value
+			results.append((self.traceSphere(ray, s), (int(mat[0]*255),int(mat[1]*255),int(mat[2]*255))))
 
-			t = self.traceSphere(ray,s)
+			# t = self.traceSphere(ray,s)
+			# if t:
+			# 	pointOnSphere = ray.position[:]
+			# 	pointOnSphere[0] += ray.vector[0] * t
+			# 	pointOnSphere[1] += ray.vector[1] * t
+			# 	pointOnSphere[2] += ray.vector[2] * t
 
-			pointOnSphere = ray.position[:]
+			# 	# print pointOnSphere
 
-			pointOnSphere[0] += ray.vector[0] * t
-			pointOnSphere[1] += ray.vector[1] * t
-			pointOnSphere[2] += ray.vector[2] * t
+			# 	pointNormal = pointOnSphere[:]
+			# 	pointNormal[0] += s.position[0]
+			# 	pointNormal[1] += s.position[1]
+			# 	pointNormal[2] += s.position[2]
 
-			pointNormal = pointOnSphere[:]
-			pointNormal[0] -= s.position[0]
-			pointNormal[1] -= s.position[1]
-			pointNormal[2] -= s.position[2]
+			# 	pointLight = None
+			# 	for light in lights:
+			# 		if light.__class__.__name__ == 'Point':
+			# 			pointLight = light
+			# 			break
 
-			pointLight = None
-			for light in lights:
-				if light.__class__.__name__ == 'Point':
-					pointLight = light
-					break
+			# 	pointLightNormal = self.norm(self.sub(pointNormal,pointLight.position))
+			# 	pointNormal = self.norm(pointNormal)
 
-			diffuseRed = s.diffuseMaterial.value[0]
-			pixelRed = diffuseRed * pointLight.value[0] * max(0,numpy.dot(pointNormal,pointLight.normal))
-			diffuseGreen = s.diffuseMaterial.value[1]
-			pixelRed = diffuseRed * pointLight.value[1] * max(0,numpy.dot(pointNormal,pointLight.normal))
-			diffuseBlue = s.diffuseMaterial.value[2]
-			pixelRed = diffuseRed * pointLight.value[2] * max(0,numpy.dot(pointNormal,pointLight.normal))
+			# 	tempDot = numpy.dot(pointNormal,pointLightNormal)
+			# 	surfaceTangent = max(0,tempDot)
+
+			# 	diffuseRed = s.diffuseMaterial.value[0]
+			# 	pixelRed = diffuseRed * pointLight.value[0] * surfaceTangent
+			# 	diffuseGreen = s.diffuseMaterial.value[1]
+			# 	pixelGreen = diffuseRed * pointLight.value[1] * surfaceTangent
+			# 	diffuseBlue = s.diffuseMaterial.value[2]
+			# 	pixelBlue = diffuseRed * pointLight.value[2] * surfaceTangent
+			
+
+			# 	# print "Diffuse"
+			# 	# print diffuseRed
+			# 	# print diffuseGreen
+			# 	# print diffuseBlue
+			# 	# print "Pixel"
+			# 	# print pixelRed
+			# 	# print pixelGreen
+			# 	# print pixelBlue
+			# 	# print "Point Light"
+			# 	# print pointLight.value[0]
+			# 	# print pointLight.value[1]
+			# 	# print pointLight.value[2]
+
+			# 	results.append((t,(int(pixelRed),int(pixelGreen),int(pixelBlue))))
 
 		results = filter(lambda tuple: tuple[0], results)
 		results = sorted(results, key=lambda tuple: tuple[1])
@@ -350,7 +380,14 @@ class Raytracer:
 			t_plus  = (numpy.dot(neg_d,e_minus_c) + discriminant)/d_dot_d
 			t_minus = (numpy.dot(neg_d,e_minus_c) - discriminant)/d_dot_d
 
-			return min(t_plus,t_minus)
+			tmin = min(t_plus,t_minus)
+			tmax = max(t_plus,t_minus)
+			if tmin >= 0:
+				return tmin
+			elif tmax >= 0:
+				return tmax
+			else:
+				return False
 		else:	
 			return False
 

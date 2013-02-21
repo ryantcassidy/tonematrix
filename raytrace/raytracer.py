@@ -27,9 +27,9 @@ class Directional(Light):
 	normal = None
 
 	def __init__(self,p,n,value):
-		self.value = value
 		self.position = p
 		self.normal = n
+		self.value = value
 
 class Spot(Light):
 	position = None
@@ -246,6 +246,8 @@ class Raytracer:
 				# U, V = co-ordinates on image frame plane for ray to cast thru
 				u = l + (r - l)*(x + .5)/width
 				v = b + (t - b)*(y + .5)/height
+				# print "U:  " + str(u)
+				# print "V:  " + str(v)
 
 				# camera frustum / 2 is the angle used in calculating distance to frame
 				theta = camera.fustrum/2
@@ -318,6 +320,26 @@ class Raytracer:
 			return self.calculateLighting(ray, s, t)
 		else:
 			return self.background
+	def traceShadow(self,ray):
+		results = []
+
+		# for every sphere
+		for s in self.spheres:
+			results.append(self.traceSphere(ray,s))
+			# get rid of false results, sort by T distance
+
+		f_results = filter(None, results)
+		s_results = sorted(f_results, key=lambda duple: duple[0])
+	  # We now know which sphere is being hit by this ray, and how far away it is.
+
+		# If we hit one...
+		if s_results:
+		  # s = sphere
+			s = s_results[0][1]
+			t = s_results[0][0]
+			return (t,s)
+		else:
+			return False
 
 	def calculateLighting(self, ray, s, t):
 		surfaceNormal = None
@@ -341,32 +363,71 @@ class Raytracer:
 			if light.__class__.__name__ == 'Point':
 				pointLight = light
 
+
 				# Light Direction - unit vector starting from Point ON Sphere in direction of light
 				lightDirection = self.norm(self.sub(pointLight.position[:], pointOnSphere))
-				# View Direction  - unit vector starting from point on sphere to the camera
-				viewDirection = self.norm(self.sub(ray.position, pointOnSphere))
-				# Half Vector = Addition of View and Light direction
-				halfVector = self.norm(self.add(viewDirection,lightDirection))
-				
-				# Avoid repetition of vector math
-				n_dot_h = self.dot(surfaceNormal, halfVector)
-				n_dot_l = self.dot(surfaceNormal, lightDirection)
+
+				lightDirectionTowardsPOS = self.scale(lightDirection,-1)
+
+				shadow = self.traceShadow(Ray(pointLight.position,lightDirectionTowardsPOS))
+				if shadow and shadow[1] == s:
+
+					# View Direction  - unit vector starting from point on sphere to the camera
+					viewDirection = self.norm(self.sub(ray.position, pointOnSphere))
+					# Half Vector = Addition of View and Light direction
+					halfVector = self.norm(self.add(viewDirection,lightDirection))
+					
+					# Avoid repetition of vector math
+					n_dot_h = self.dot(surfaceNormal, halfVector)
+					n_dot_l = self.dot(surfaceNormal, lightDirection)
 
 
-				# Pixel Values
-				specularRed = s.specularMaterial.value[0] * pointLight.value[0] * max(0,n_dot_h)**s.specularMaterial.value[3]
-				diffuseRed  = s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,n_dot_l)
-	
-				specularGreen = s.specularMaterial.value[1] * pointLight.value[1] * max(0,n_dot_h)**s.specularMaterial.value[3]
-				diffuseGreen  = s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,n_dot_l)
+					# Pixel Values
+					specularRed = s.specularMaterial.value[0] * pointLight.value[0] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseRed  = s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,n_dot_l)
+		
+					specularGreen = s.specularMaterial.value[1] * pointLight.value[1] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseGreen  = s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,n_dot_l)
 
-				specularBlue = s.specularMaterial.value[2] * pointLight.value[2] * max(0,n_dot_h)**s.specularMaterial.value[3]
-				diffuseBlue  = s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,n_dot_l) 
+					specularBlue = s.specularMaterial.value[2] * pointLight.value[2] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseBlue  = s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,n_dot_l) 
 
-				# Add light values to ambient vals
-				pixelRed   += diffuseRed + specularRed
-				pixelGreen += diffuseGreen + specularGreen
-				pixelBlue  += diffuseBlue + specularBlue
+					# Add light values to ambient vals
+					pixelRed   += diffuseRed + specularRed
+					pixelGreen += diffuseGreen + specularGreen
+					pixelBlue  += diffuseBlue + specularBlue
+
+			elif light.__class__.__name__ == 'Directional':
+
+				directionalLight = light
+				# Light Direction - unit vector starting from Point ON Sphere in direction of light
+				lightDirection = self.scale(directionalLight.normal,-1)
+				shadow = self.traceShadow(Ray(pointOnSphere,lightDirection))
+				if shadow and shadow[1] == s:
+					# View Direction  - unit vector starting from point on sphere to the camera
+					viewDirection = self.norm(self.sub(ray.position, pointOnSphere))
+					# Half Vector = Addition of View and Light direction
+					halfVector = self.norm(self.add(viewDirection,lightDirection))
+					
+					# Avoid repetition of vector math
+					n_dot_h = self.dot(surfaceNormal, halfVector)
+					n_dot_l = self.dot(surfaceNormal, lightDirection)
+
+
+					# Pixel Values
+					specularRed = s.specularMaterial.value[0] * directionalLight.value[0] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseRed  = s.diffuseMaterial.value[0] * directionalLight.value[0] * max(0,n_dot_l)
+		
+					specularGreen = s.specularMaterial.value[1] * directionalLight.value[1] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseGreen  = s.diffuseMaterial.value[1] * directionalLight.value[1] * max(0,n_dot_l)
+
+					specularBlue = s.specularMaterial.value[2] * directionalLight.value[2] * max(0,n_dot_h)**s.specularMaterial.value[3]
+					diffuseBlue  = s.diffuseMaterial.value[2] * directionalLight.value[2] * max(0,n_dot_l) 
+
+					# Add light values to ambient vals
+					pixelRed   += diffuseRed + specularRed
+					pixelGreen += diffuseGreen + specularGreen
+					pixelBlue  += diffuseBlue + specularBlue
 		
 		colors = (int(pixelRed*255),int(pixelGreen*255),int(pixelBlue*255))
 		return colors

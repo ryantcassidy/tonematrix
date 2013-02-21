@@ -121,6 +121,7 @@ class Raytracer:
 	spheres = []
 	triangles = []
 	planes = []
+	ambientLight = None
 	lights = []
 	camera = None
 	imageResolution = []
@@ -181,6 +182,7 @@ class Raytracer:
 			#Ambient Light - r g b
 			elif(command == "al"):
 				self.ambientLight = lAmbient([float(args[1]), float(args[2]), float(args[3])]) 
+
 			#Camera - i
 			elif(command == "cc"):
 				self.camera = Camera(self.vertices[int(args[1])].position,
@@ -279,7 +281,7 @@ class Raytracer:
 				up[2] *= v 
 
 				# ray direction vector is all these combined
-			  # -w * d + up * U + right * V
+				# -w * d + up * U + right * V
 				rayDirection = [look[0] + up[0] + right[0],
 								look[1] + up[1] + right[1],
 								look[2] + up[2] + right[2]]
@@ -350,6 +352,7 @@ class Raytracer:
 				n_dot_h = self.dot(surfaceNormal, halfVector)
 				n_dot_l = self.dot(surfaceNormal, lightDirection)
 
+
 				# Pixel Values
 				specularRed = s.specularMaterial.value[0] * pointLight.value[0] * max(0,n_dot_h)**s.specularMaterial.value[3]
 				diffuseRed  = s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,n_dot_l)
@@ -380,7 +383,7 @@ class Raytracer:
 		n = sphere.normal
 		radius = math.sqrt(self.dot(n, n))
 
-	  # simplify below calculations
+		# simplify below calculations
 		e_minus_c = ( e[0] - c[0], e[1] - c[1], e[2] - c[2] )
 		d_dot_d   = self.dot(d,d)
 

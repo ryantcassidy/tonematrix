@@ -265,22 +265,13 @@ class Raytracer:
 				V = self.cross(W, U)
 
 				# scale the look vector by distance
-				look = W[:]
-				look[0] *= d
-				look[1] *= d
-				look[2] *= d
+				look = self.scale(W[:], d)
 
 				# scale right vector by V coord
-				right = U[:]
-				right[0] *= u
-				right[1] *= u
-				right[2] *= u
+				right = self.scale(U[:], u)
 
 				# scale up vector by U coord
-				up = V[:]
-				up[0] *= v 
-				up[1] *= v 
-				up[2] *= v 
+				up = self.scale(V[:], v)
 
 				# ray direction vector is all these combined
 				# -w * d + up * U + right * V
@@ -293,7 +284,6 @@ class Raytracer:
 				
 				# trace the ray
 				result = self.traceRay(ray)
-
 				pixels[x,y] = result
 
 		image.save(self.outputImage + str(start) + ".gif")
@@ -310,11 +300,11 @@ class Raytracer:
 
 		f_results = filter(None, results)
 		s_results = sorted(f_results, key=lambda duple: duple[0])
-	  # We now know which sphere is being hit by this ray, and how far away it is.
 
+	  # We now know which sphere is being hit by this ray, and how far away it is.
 		# If we hit one...
 		if s_results:
-		  # s = sphere
+		  # s = sphere, t = scale factor for ray vec
 			s = s_results[0][1]
 			t = s_results[0][0]
 			return self.calculateLighting(ray, s, t)
@@ -343,14 +333,13 @@ class Raytracer:
 
 	def calculateLighting(self, ray, s, t):
 		surfaceNormal = None
-		lightDirection = None
 		viewDirection = None
 
-		# calculate the point on the sphere with the raycasting results
+		# rayVector = unit vector in direction of casted ray
 		rayVector = self.norm(ray.vector)
+		# POS = collision point on the sphere with the raycasting results
 		pointOnSphere = self.add(ray.position[:], self.scale(rayVector, t))
-
-		# Unit Vector perpendicular to surface of sphere at this point
+		# Surface Normal = Unit Vector perpendicular to surface of sphere at this point
 		surfaceNormal = self.norm(self.sub(pointOnSphere[:], s.position))
 
 	  # Base Pixel Vals
@@ -360,6 +349,7 @@ class Raytracer:
 		pixelBlue  = s.ambientMaterial.value[2] * self.ambientLight.value[2]
 
 		for light in self.lights:
+			lightDirection = None
 			if light.__class__.__name__ == 'Point':
 				pointLight = light
 
@@ -380,7 +370,6 @@ class Raytracer:
 					# Avoid repetition of vector math
 					n_dot_h = self.dot(surfaceNormal, halfVector)
 					n_dot_l = self.dot(surfaceNormal, lightDirection)
-
 
 					# Pixel Values
 					specularRed = s.specularMaterial.value[0] * pointLight.value[0] * max(0,n_dot_h)**s.specularMaterial.value[3]

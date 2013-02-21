@@ -288,7 +288,7 @@ class Raytracer:
 
 				pixels[x,y] = result
 
-		image.save(self.outputImage + ".gif")
+		image.save(self.outputImage + str(start) + ".gif")
 		end = int(round(time.time() * 1000)) - start
 		print end
 
@@ -324,38 +324,39 @@ class Raytracer:
 			surfaceNormal[2] -= s.position[2]
 
 			pointLight = None
+
+			pixelRed = 0
+			pixelGreen = 0
+			pixelBlue = 0
+
 			for light in self.lights:
 				if light.__class__.__name__ == 'Point':
 					pointLight = light
-					break
 
-			lightDirection = s.position[:]
-			lightDirection[0] -= pointLight.position[0]
-			lightDirection[1] -= pointLight.position[1]
-			lightDirection[2] -= pointLight.position[2]
+					lightDirection = pointLight.position[:]
+					lightDirection[0] -= s.position[0]
+					lightDirection[1] -= s.position[1]
+					lightDirection[2] -= s.position[2]
 
-			viewDirection = rayVector
+					viewDirection = rayVector
 
-			surfaceNormal = self.norm(surfaceNormal)
-			lightDirection = self.norm(lightDirection)
-			viewDirection = self.norm(viewDirection)
-			halfVector = self.norm(self.add(viewDirection,lightDirection))
+					halfVector = self.norm(self.add(viewDirection,lightDirection))
+					surfaceNormal = self.norm(surfaceNormal)
+					lightDirection = self.norm(lightDirection)
+					viewDirection = self.norm(viewDirection)
 
-			specularRed = (s.specularMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
-			diffuseRed  = (s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,lightDirection)))
+					specularRed = (s.specularMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+					diffuseRed  = (s.diffuseMaterial.value[0] * pointLight.value[0] * max(0,numpy.dot(surfaceNormal,lightDirection)))
 
-			specularGreen = (s.specularMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
-			diffuseGreen  = (s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,lightDirection)))
+					specularGreen = (s.specularMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+					diffuseGreen  = (s.diffuseMaterial.value[1] * pointLight.value[1] * max(0,numpy.dot(surfaceNormal,lightDirection)))
 
-			# print "SPEC   " + str(specularGreen)
-			# print "DIFFUSE   " + str(s.diffuseMaterial.value[1]) + " " + str(pointLight.value[1]) + " " + str(max(0,numpy.dot(surfaceNormal,lightDirection)))
+					specularBlue = (s.specularMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
+					diffuseBlue  = (s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,lightDirection))) 
 
-			specularBlue = (s.specularMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,halfVector))**s.specularMaterial.value[3])
-			diffuseBlue  = (s.diffuseMaterial.value[2] * pointLight.value[2] * max(0,numpy.dot(surfaceNormal,lightDirection))) 
-
-			pixelRed = (s.ambientMaterial.value[0] + diffuseRed + specularRed)
-			pixelGreen = (s.ambientMaterial.value[1] + diffuseGreen + specularGreen)
-			pixelBlue = (s.ambientMaterial.value[2] + diffuseBlue + specularBlue)
+					pixelRed += (s.ambientMaterial.value[0] + diffuseRed + specularRed)
+					pixelGreen += (s.ambientMaterial.value[1] + diffuseGreen + specularGreen)
+					pixelBlue += (s.ambientMaterial.value[2] + diffuseBlue + specularBlue)
 			
 			colors = (int(pixelRed*255),int(pixelGreen*255),int(pixelBlue*255))
 			return colors

@@ -463,7 +463,7 @@ class Raytracer:
 			reflectionVector = self.sub(rayVector, self.scale(surfaceNormal, 2 * self.dot(rayVector,surfaceNormal)))
 			# # if hit:
 			reflection = self.traceRay(Ray(pointOnSphere,reflectionVector),rdepth - 1)
-				print reflection
+			# print reflection
 
 		# colors = (int(((pixelRed+reflection[0])/2)*255),int(((pixelGreen+reflection[1])/2)*255),int(((pixelBlue+reflection[2])/2)*255))
 		red = 0

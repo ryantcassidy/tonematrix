@@ -453,13 +453,13 @@ class Raytracer:
 					diffuseBlue  = asset.diffuseMaterial.value[2] * directionalLight.value[2] * max(0,n_dot_l) 
 
 					# Add light values to ambient vals
-					pixelRed   += diffuseRed + specularRed
-					pixelGreen += diffuseGreen + specularGreen
-					pixelBlue  += diffuseBlue + specularBlue
+					pixelRed   += (diffuseRed + specularRed)*(1/shadow[0])
+					pixelGreen += (diffuseGreen + specularGreen)*(1/shadow[0])
+					pixelBlue  += (diffuseBlue + specularBlue)*(1/shadow[0])
 		
 
 		reflection = (0,0,0)
-		# if rdepth > 0:
+		if rdepth > 0:
 			reflectionVector = self.sub(rayVector, self.scale(surfaceNormal, 2 * self.dot(rayVector,surfaceNormal)))
 			# # if hit:
 			reflection = self.traceRay(Ray(pointOnSphere,reflectionVector),rdepth - 1)

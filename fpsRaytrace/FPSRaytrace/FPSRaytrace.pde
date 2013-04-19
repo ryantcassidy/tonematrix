@@ -9,6 +9,7 @@ float lookX = 0;
 float lookY = 0;
 float lookZ = 0;
 boolean drawSpheres = false;
+boolean drawParticles = false;
 int LIFETIME = 500;
 int PARTICLE_SIZE = 4;
 
@@ -19,7 +20,7 @@ float vectorDist(PVector v1, PVector v2) {
 }
 
 void setup() {
-  size(WIDTH, HEIGHT, OPENGL);
+  size(WIDTH, HEIGHT, P3D);
   fpsraytracer = new FPSRaytracer();
   frameRate(20);
 }
@@ -50,16 +51,20 @@ void mouseMoved() {
   //Controls camera movement.
   camX -= mouseX - pmouseX;
   camY -= mouseY - pmouseY;
-  fpsraytracer.addParticle();
 }
 
-void mouseDragged() {
-  fpsraytracer.addParticle();
+void mousePressed() {
+    for(int x = -100; x < 100; x+=20){
+      for(int y = -100; y < 100; y+=20){
+        fpsraytracer.addParticle(new PVector(camX+x,camY+y,camZ));
+      }
+    }
 }
 
 void keyPressed() {
-  if(key == 'm'){
+  if(key == 'v'){
     drawSpheres = !drawSpheres;
+    drawParticles = !drawParticles;
   }
   if(key == 'w'){
     lookZ+=10;
@@ -78,11 +83,6 @@ void keyPressed() {
     camX -=10;
   }
   if(key == '>'){
-    for(int x = -100; x < 100; x++){
-      for(int y = -100; y < 100; y++){
-        fpsraytracer.addParticle(new PVector(x+camX,y+camY,camZ));
-      }
-    }
   }
 }
 
@@ -149,7 +149,7 @@ class FPSRaytracer {
                                lookZ - camZ);
     pVel.normalize();
     pVel.mult(5);
-    pVel.mult(new PVector(random(4),1,random(4)));
+//    pVel.mult(new PVector(random(4),1,random(4)));
     color c = color(120);
     Particle p = new Particle(pPos,pVel,c);
     particles.add(p);
@@ -161,8 +161,8 @@ class FPSRaytracer {
                                lookY - camY, 
                                lookZ - camZ);
     pVel.normalize();
-    pVel.mult(5);
-    pVel.mult(new PVector(random(4),1,random(4)));
+    pVel.mult(50);
+//    pVel.mult(new PVector(random(4),1,random(4)));
     color c = color(120);
     Particle p = new Particle(pPos,pVel,c);
     particles.add(p);
@@ -192,7 +192,7 @@ class Particle {
     PVector particleDirection = PVector.mult(vel,pos);
     PVector normal = PVector.sub(s.pos,pos);
     normal.normalize();
-    PVector twoNdotDirNormal = PVector.mult(normal,abs(2*PVector.dot(particleDirection,normal)));
+    PVector twoNdotDirNormal = PVector.mult(normal,(2*PVector.dot(particleDirection,normal)));
     PVector reflectedDirection = PVector.sub(particleDirection,twoNdotDirNormal);
     reflectedDirection.normalize();
     vel = reflectedDirection;
@@ -240,7 +240,7 @@ class Collision {
 //    sphere(10);
 //    popMatrix();
     stroke(cColor);
-    strokeWeight(max(1,PARTICLE_SIZE/(fpsraytracer.collisions.size())));
+    strokeWeight(max(1,PARTICLE_SIZE));
     point(pos.x,pos.y,pos.z);
   }
 }

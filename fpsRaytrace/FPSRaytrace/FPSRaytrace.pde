@@ -1,7 +1,7 @@
 FPSRaytracer fpsraytracer;
-int WIDTH = 500;
-int HEIGHT = 500;
-int DEPTH = 500;
+int WIDTH = 800;
+int HEIGHT = 800;
+int DEPTH = 1500;
 float camX = WIDTH/2;
 float camY = HEIGHT/2;
 float camZ = 370;
@@ -10,8 +10,10 @@ float lookY = 0;
 float lookZ = 0;
 boolean drawSpheres = false;
 boolean drawParticles = false;
-int LIFETIME = 500;
-int PARTICLE_SIZE = 4;
+int LIFETIME = 300;
+int PARTICLE_SIZE = 1;
+int SPEED = 2;
+float COLLISION_THRESHOLD = .3;
 
 
 float vectorDist(PVector v1, PVector v2) {
@@ -22,11 +24,11 @@ float vectorDist(PVector v1, PVector v2) {
 void setup() {
   size(WIDTH, HEIGHT, P3D);
   fpsraytracer = new FPSRaytracer();
-  frameRate(20);
+  frameRate(2000);
 }
 
 void draw() {
-  background(255);
+  background(200);
   camera(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0);
   fpsraytracer.update();
   if (drawSpheres){
@@ -42,8 +44,11 @@ void draw() {
   }
   print(fpsraytracer.particles.size());
   print("\n");
-  for(Collision c : fpsraytracer.collisions){
-    c.draw();
+  print(fpsraytracer.collisions.size());
+  print("\n");
+  print("-----\n");
+  for(PVector p : fpsraytracer.collisions.keySet()){
+    fpsraytracer.collisions.get(p).draw();
   }
 }
 
@@ -53,12 +58,15 @@ void mouseMoved() {
   camY -= mouseY - pmouseY;
 }
 
-void mousePressed() {
-    for(int x = -100; x < 100; x+=20){
-      for(int y = -100; y < 100; y+=20){
-        fpsraytracer.addParticle(new PVector(camX+x,camY+y,camZ));
-      }
+void mouseClicked() {
+  PVector rand = new PVector(random(4),random(4),1);
+  for(int x = -50; x < 50; x+=5){
+    for(int y = -50; y < 50; y+=5){
+      PVector pos = new PVector(camX+x,camY+y,camZ);
+      pos.add(rand);
+      fpsraytracer.addParticle(pos);
     }
+  }
 }
 
 void keyPressed() {
@@ -89,7 +97,7 @@ void keyPressed() {
 class FPSRaytracer {
   ArrayList<Particle> particles = new ArrayList<Particle>();
   ArrayList<Sphere> spheres = new ArrayList<Sphere>();
-  ArrayList<Collision> collisions = new ArrayList<Collision>();
+  HashMap<PVector,Collision> collisions = new HashMap<PVector,Collision>();
 
   FPSRaytracer() {
     spheres.add(new Sphere(new PVector(-100, 0, 0), 100.0, color(255,0,0)));
@@ -105,15 +113,21 @@ class FPSRaytracer {
           vectorDist(p.pos,new PVector(camX,camY,camZ)) > DEPTH ||
           p.collisionCount >= 4){
         pRemove.add(p);
-        break;
+        continue;
       }
       for (Sphere s : spheres) {
         if (p.hit(s)) {
           p.reflect(s);
           PVector cPos = new PVector(p.pos.x,p.pos.y,p.pos.z);
+          cPos = clampToInt(cPos);
           color avgColor = averageColor(p.pColor,s.sColor);
           p.pColor = avgColor;
-          collisions.add(new Collision(cPos,avgColor));
+          Collision oldColl = collisions.get(cPos);
+          if(oldColl != null){
+            color oldColor = oldColl.cColor;
+            avgColor = averageColor(avgColor,oldColor);
+          }
+          collisions.put(cPos, new Collision(cPos,avgColor));
           break;
         }
       }
@@ -123,6 +137,13 @@ class FPSRaytracer {
     for (Particle p : pRemove) {
       particles.remove(p);
     }
+  }
+  
+  PVector clampToInt(PVector v){
+    v.x = floor(v.x);
+    v.y = floor(v.y);
+    v.z = floor(v.z);
+    return v;
   }
   
   color averageColor(color c1, color c2){
@@ -148,9 +169,9 @@ class FPSRaytracer {
                                lookY - camY, 
                                lookZ - camZ);
     pVel.normalize();
-    pVel.mult(5);
-//    pVel.mult(new PVector(random(4),1,random(4)));
-    color c = color(120);
+    pVel.mult(SPEED);
+    pPos.add(pVel);
+    color c = color(255);
     Particle p = new Particle(pPos,pVel,c);
     particles.add(p);
   }
@@ -161,9 +182,9 @@ class FPSRaytracer {
                                lookY - camY, 
                                lookZ - camZ);
     pVel.normalize();
-    pVel.mult(50);
-//    pVel.mult(new PVector(random(4),1,random(4)));
-    color c = color(120);
+    pVel.mult(SPEED);
+    pPos.add(pVel);
+    color c = color(255);
     Particle p = new Particle(pPos,pVel,c);
     particles.add(p);
   }
@@ -175,7 +196,7 @@ class Particle {
   PVector vel;
   color pColor;
   int collisionCount = 0;
-  int lifetime = floor(random(LIFETIME));
+  int lifetime = LIFETIME;
 
   Particle(PVector pos, PVector vel, color pColor) {
     this.pos = pos;
@@ -192,7 +213,7 @@ class Particle {
     PVector particleDirection = PVector.mult(vel,pos);
     PVector normal = PVector.sub(s.pos,pos);
     normal.normalize();
-    PVector twoNdotDirNormal = PVector.mult(normal,(2*PVector.dot(particleDirection,normal)));
+    PVector twoNdotDirNormal = PVector.mult(normal,abs(2*PVector.dot(particleDirection,normal)));
     PVector reflectedDirection = PVector.sub(particleDirection,twoNdotDirNormal);
     reflectedDirection.normalize();
     vel = reflectedDirection;
@@ -200,7 +221,7 @@ class Particle {
   }
 
   boolean hit(Sphere sphere) {
-    boolean hit = vectorDist(this.pos, sphere.pos) <= (sphere.radius + PARTICLE_SIZE);
+    boolean hit = vectorDist(this.pos, sphere.pos) <= (sphere.radius - 10);
     if(hit){
       collisionCount++;
     }

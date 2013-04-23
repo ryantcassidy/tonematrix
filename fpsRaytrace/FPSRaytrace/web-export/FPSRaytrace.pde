@@ -16,7 +16,7 @@ int SPEED = 2;
 int MAX_COLLISIONS = 10;
 float COLLISION_THRESHOLD = .3;
 
-//Global helper which returns the distance between two PVectors
+
 float vectorDist(PVector v1, PVector v2) {
   return dist(v1.x, v1.y, v1.z, 
   v2.x, v2.y, v2.z);
@@ -24,7 +24,6 @@ float vectorDist(PVector v1, PVector v2) {
 
 void setup() {
   size(WIDTH, HEIGHT, P3D);
-  //Instantiate
   fpsraytracer = new FPSRaytracer();
   frameRate(2000);
 }
@@ -32,14 +31,26 @@ void setup() {
 void draw() {
   background(200);
   camera(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0);
-  //Update the state of the world
   fpsraytracer.update();
-  
+  if (drawSpheres){
+    for(Sphere s : fpsraytracer.spheres){
+      sphereDetail(30);
+      noStroke();
+      fill(s.sColor);
+      pushMatrix();
+      translate(s.pos.x,s.pos.y,s.pos.z);
+      sphere(s.radius);
+      popMatrix();
+    }
+  }
   print(fpsraytracer.particles.size());
   print("\n");
   print(fpsraytracer.collisions.size());
   print("\n");
   print("-----\n");
+  for(PVector p : fpsraytracer.collisions.keySet()){
+    fpsraytracer.collisions.get(p).draw();
+  }
 }
 
 void mouseMoved() {
@@ -62,11 +73,6 @@ void mouseClicked() {
 void keyPressed() {
   if(key == 'v'){
     drawSpheres = !drawSpheres;
-  }
-  if(key == 'c'){
-    fpsraytracer.particles = new ArrayList<Particle>();
-  }
-  if(key == 'p'){
     drawParticles = !drawParticles;
   }
   if(key == 'w'){
@@ -113,21 +119,17 @@ class FPSRaytracer {
       }
       for (Sphere s : spheres) {
         if (p.hit(s)) {
-          p.reflect(s.pos);
+          p.reflect(s);
           PVector cPos = new PVector(p.pos.x,p.pos.y,p.pos.z);
           cPos = clampToInt(cPos);
-          if (p.collisionCount >= 1){  
-            color avgColor = averageColor(p.pColor,s.sColor);
-            p.pColor = avgColor;
-            Collision oldColl = collisions.get(cPos);
-            if(oldColl != null){
-              color oldColor = oldColl.cColor;
-              avgColor = averageColor(avgColor,oldColor);
-            }
-            collisions.put(cPos, new Collision(cPos,avgColor));
-          } else {
-            collisions.put(cPos, new Collision(cPos,s.sColor));
+          color avgColor = averageColor(p.pColor,s.sColor);
+          p.pColor = avgColor;
+          Collision oldColl = collisions.get(cPos);
+          if(oldColl != null){
+            color oldColor = oldColl.cColor;
+            avgColor = averageColor(avgColor,oldColor);
           }
+          collisions.put(cPos, new Collision(cPos,avgColor));
           break;
         }
       }
@@ -136,20 +138,6 @@ class FPSRaytracer {
     }
     for (Particle p : pRemove) {
       particles.remove(p);
-    }
-    if (drawSpheres){
-      for(Sphere s : fpsraytracer.spheres){
-        sphereDetail(30);
-        noStroke();
-        fill(s.sColor);
-        pushMatrix();
-        translate(s.pos.x,s.pos.y,s.pos.z);
-        sphere(s.radius);
-        popMatrix();
-      }
-    }
-    for(PVector p : fpsraytracer.collisions.keySet()){
-      fpsraytracer.collisions.get(p).draw();
     }
   }
   
@@ -206,18 +194,6 @@ class FPSRaytracer {
     Particle p = new Particle(pPos,pVel,c);
     particles.add(p);
   }
-  
-  void addParticlePlane() {
-    
-    PVector rand = new PVector(random(4),random(4),1);
-    for(int x = -50; x < 50; x+=5){
-      for(int y = -50; y < 50; y+=5){
-        PVector pos = new PVector(camX+x,camY+y,camZ);
-        pos.add(rand);
-        fpsraytracer.addParticle(pos);
-      }
-    }
-  }
 }
 
 class Particle {
@@ -237,22 +213,17 @@ class Particle {
   void update() {
     lifetime--;
     pos.add(vel);
-//    for(Particle p : fpsraytracer.particles){
-//      if(vectorDist(p.pos,this.pos) <= PARTICLE_SIZE*1){
-//        this.reflect(p.pos);
-//        p.reflect(this.pos);
-//      }
-//    }
   }
 
-  void reflect(PVector position) {
+  void reflect(Sphere s) {
     PVector particleDirection = PVector.mult(vel,pos);
-    PVector normal = PVector.sub(position,pos);
+    PVector normal = PVector.sub(s.pos,pos);
     normal.normalize();
     PVector twoNdotDirNormal = PVector.mult(normal,abs(2*PVector.dot(particleDirection,normal)));
     PVector reflectedDirection = PVector.sub(particleDirection,twoNdotDirNormal);
     reflectedDirection.normalize();
     vel = reflectedDirection;
+    
   }
 
   boolean hit(Sphere sphere) {
@@ -271,12 +242,10 @@ class Particle {
 //    translate(pos.x,pos.y,pos.z);
 //    sphere(PARTICLE_SIZE);
 //    popMatrix();
-    if(drawParticles){
-      stroke(pColor);
-      strokeWeight(PARTICLE_SIZE);
-      smooth();
-      point(pos.x,pos.y,pos.z);
-    }
+    stroke(pColor);
+    strokeWeight(PARTICLE_SIZE);
+    smooth();
+    point(pos.x,pos.y,pos.z);
 //    line(pos.x, pos.y, pos.z, pos.x+vel.x, pos.y+vel.y, pos.z+vel.z);
   }
 }
@@ -315,4 +284,5 @@ class Sphere {
     this.sColor = sColor;
   }
 }
+
 
